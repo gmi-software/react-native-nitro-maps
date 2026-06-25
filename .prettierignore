@@ -1,0 +1,8 @@
+node_modules/
+lib/
+dist/
+coverage/
+.expo/
+android/
+ios/
+nitrogen/

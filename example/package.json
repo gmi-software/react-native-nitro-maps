@@ -1,0 +1,26 @@
+{
+  "name": "react-native-nitro-maps-example",
+  "version": "0.0.1",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild"
+  },
+  "dependencies": {
+    "expo": "~56.0.3",
+    "expo-status-bar": "~3.0.8",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-nitro-maps": "workspace:*",
+    "react-native-nitro-modules": "^0.35.10"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.4",
+    "@types/react": "^19.2.15",
+    "babel-preset-expo": "~56.0.15",
+    "typescript": "^5.8.3"
+  }
+}

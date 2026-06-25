@@ -1,0 +1,39 @@
+# Android native implementation
+
+Kotlin implementation of the `MapView` Nitro HybridView backed by Google Maps.
+
+## Structure
+
+```
+android/
+├── build.gradle
+├── CMakeLists.txt
+└── src/main/java/com/margelo/nitro/nitromaps/
+    ├── HybridMapView.kt              # Google Maps MapView implementation
+    ├── NitroMapsPackage.kt           # React Native package registration
+    ├── MapType+GoogleMap.kt          # MapType → GoogleMap.MAP_TYPE_* mapping
+    ├── Camera+CameraPosition.kt      # Camera ↔ CameraPosition conversion
+    ├── Region+LatLngBounds.kt        # Region ↔ LatLngBounds conversion
+    └── GoogleMap+VisibleRegion.kt    # Projection → VisibleRegion conversion
+```
+
+Generated Nitrogen bindings live in `../nitrogen/generated/android/kotlin/` and are included via `NitroMaps+autolinking.gradle`.
+
+## Google Maps API key
+
+The library does not ship an API key. Host apps must provide one in their `AndroidManifest.xml`:
+
+```xml
+<meta-data
+  android:name="com.google.android.geo.API_KEY"
+  android:value="YOUR_API_KEY" />
+```
+
+For the example Expo app, set `GOOGLE_MAPS_API_KEY` (see `example/.env.example`) before running `expo prebuild` or `expo run:android`.
+
+## Getting started
+
+1. Run `bun run nitrogen` from the repo root if you change the Nitro spec.
+2. Build the example app: `GOOGLE_MAPS_API_KEY=your-key bun example android`.
+
+See [src/native/README.md](../src/native/README.md) for the JS ↔ native architecture.

@@ -1,0 +1,46 @@
+node_modules/
+lib/
+dist/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Build outputs
+package/lib/
+package/nitrogen/
+
+# Expo
+example/.expo/
+example/dist/
+example/web-build/
+
+# Native — Android (any module: package/, example/, etc.)
+.cxx/
+.gradle/
+local.properties
+*.iml
+**/android/build/
+**/android/app/build/
+*.hprof
+
+# Native — iOS
+*.xcuserstate
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+*.xcodeproj
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+**/ios/Pods/
+**/ios/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Bun lockfile is committed for reproducible CI installs

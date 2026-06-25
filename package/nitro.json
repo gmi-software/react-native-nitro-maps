@@ -1,0 +1,23 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["nitromaps"],
+  "ios": {
+    "iosModuleName": "NitroMaps"
+  },
+  "android": {
+    "androidNamespace": ["nitromaps"],
+    "androidCxxLibName": "NitroMaps"
+  },
+  "autolinking": {
+    "MapView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMapView"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMapView"
+      }
+    }
+  }
+}
