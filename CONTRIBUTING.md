@@ -33,10 +33,31 @@ Thank you for your interest in contributing!
 | `bun run nitrogen` | Run Nitrogen codegen (when specs are ready) |
 | `bun run format` | Format all files with Prettier |
 
+## Commit messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/). Commit messages are validated locally via Husky and on pull requests in CI.
+
+Format:
+
+```
+<type>[optional scope]: <description>
+```
+
+Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
+
+Examples:
+
+```
+feat: add marker clustering support
+fix(ios): correct viewport filter for wrapped longitudes
+chore: add commitlint configuration
+```
+
 ## Pull request guidelines
 
 - Keep changes focused and well-scoped.
 - Run `bun run lint`, `bun run typecheck`, and `bun run build` before opening a PR.
+- Use conventional commit messages for all commits in the PR.
 - Follow existing naming conventions and avoid `any` in TypeScript.
 - Update documentation when changing public APIs.
 
