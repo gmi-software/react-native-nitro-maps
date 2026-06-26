@@ -32,6 +32,30 @@ Thank you for your interest in contributing!
 | `bun run build` | Build the library with react-native-builder-bob |
 | `bun run nitrogen` | Run Nitrogen codegen (when specs are ready) |
 | `bun run format` | Format all files with Prettier |
+| `bun run doctor` | Run React Doctor locally |
+
+## React Doctor
+
+[React Doctor](https://www.react.doctor/docs) scans React and React Native code for security risks, performance regressions, effect misuse, and architecture issues. It complements ESLint — it does not replace lint, typecheck, or build checks.
+
+Run locally from the monorepo root:
+
+```bash
+bun run doctor
+# or
+npx react-doctor@latest
+```
+
+Both `package/` (library) and `example/` (Expo app) are included in scans.
+
+### CI behavior
+
+React Doctor runs in a separate GitHub Actions workflow (`.github/workflows/react-doctor.yml`):
+
+- **Pull requests:** posts a summary comment with a health score and inline review comments on changed lines. During the initial advisory rollout, findings are reported but do not block merges (`blocking: none`, `scope: full`).
+- **Pushes to `main`:** records the health score trend without failing the branch.
+
+After the baseline is documented and critical findings are addressed, CI will switch to blocking new errors on changed files only.
 
 ## Commit messages
 
