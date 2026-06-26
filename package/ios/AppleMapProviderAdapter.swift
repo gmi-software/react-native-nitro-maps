@@ -5,7 +5,9 @@ import UIKit
 final class AppleMapProviderAdapter: MapProviderAdapter {
   private let mapViewDelegate = HybridMapViewDelegate()
   private var isProgrammaticUpdate = false
-  private var hasFiredMapReady = false
+  private var isMapReady = false
+  private var hasDeliveredMapReady = false
+  private var liveClusterTimer: Timer?
   fileprivate lazy var overlayController = MapOverlayController(mapView: view)
 
   var contentView: UIView {
@@ -13,7 +15,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
   }
 
   lazy var view: MKMapView = {
-    let mapView = MKMapView()
+    let mapView = NitroMKMapView()
     mapViewDelegate.parent = self
     mapView.delegate = mapViewDelegate
     mapView.mapType = mapType.toMKMapType()
@@ -25,6 +27,14 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     applyControlSettings(to: mapView)
     applyMapPadding(to: mapView)
     applyCustomMapStyle(to: mapView)
+    mapView.register(
+      NitroPinAnnotationView.self,
+      forAnnotationViewWithReuseIdentifier: NitroPinAnnotationView.reuseIdentifier
+    )
+    mapView.register(
+      NitroClusterAnnotationView.self,
+      forAnnotationViewWithReuseIdentifier: NitroClusterAnnotationView.reuseIdentifier
+    )
     mapViewDelegate.installGestureRecognizers(on: mapView)
     return mapView
   }()
@@ -110,7 +120,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
 
   var clusteringEnabled: Bool? {
     didSet {
-      refreshMarkerClustering()
+      overlayController.setClusteringEnabled(clusteringEnabled == true)
     }
   }
 
@@ -122,14 +132,17 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
 
   var onRegionChange: ((Region) -> Void)?
   var onRegionChangeComplete: ((Region) -> Void)?
-  var onMapReady: (() -> Void)?
+  var onMapReady: (() -> Void)? {
+    didSet {
+      deliverMapReadyIfPossible()
+    }
+  }
   var onPress: ((Coordinate) -> Void)?
   var onLongPress: ((Coordinate) -> Void)?
 
   var markers: [MarkerDescriptor]? {
     didSet {
-      overlayController.updateMarkers(markers)
-      refreshMarkerClustering()
+      overlayController.setMarkers(markers)
     }
   }
 
@@ -227,14 +240,35 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     isProgrammaticUpdate = false
   }
 
-  func markerId(for annotation: MKAnnotation) -> String? {
-    overlayController.markerId(for: annotation)
-  }
-
   // Derived from MKCoordinateRegion (center + span). May differ from Android
   // bounds-derived region when the map is rotated or pitched.
   func currentRegion() -> Region {
     view.region.toRegion()
+  }
+
+  func scheduleMarkerViewportRefresh() {
+    overlayController.scheduleViewportRefresh()
+  }
+
+  func animateToClusterRegion(_ region: MKCoordinateRegion) {
+    view.setRegion(view.regionThatFits(region), animated: true)
+  }
+
+  func startLiveClustering() {
+    guard liveClusterTimer == nil else {
+      return
+    }
+    let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+      self?.overlayController.refreshNow()
+    }
+    RunLoop.main.add(timer, forMode: .common)
+    liveClusterTimer = timer
+  }
+
+  func stopLiveClustering() {
+    liveClusterTimer?.invalidate()
+    liveClusterTimer = nil
+    overlayController.scheduleViewportRefresh(immediate: true)
   }
 
   func notifyRegionChange(complete: Bool) {
@@ -251,12 +285,22 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
   }
 
   func notifyMapReadyIfNeeded() {
-    guard !hasFiredMapReady else {
+    guard !isMapReady else {
       return
     }
 
-    hasFiredMapReady = true
-    onMapReady?()
+    isMapReady = true
+    overlayController.setMarkers(markers)
+    deliverMapReadyIfPossible()
+  }
+
+  private func deliverMapReadyIfPossible() {
+    guard isMapReady, !hasDeliveredMapReady, let onMapReady else {
+      return
+    }
+
+    hasDeliveredMapReady = true
+    onMapReady()
   }
 
   func notifyPress(at point: CGPoint) {
@@ -293,8 +337,11 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
   }
 
   func prepareForRecycle() {
+    liveClusterTimer?.invalidate()
+    liveClusterTimer = nil
     isProgrammaticUpdate = false
-    hasFiredMapReady = false
+    isMapReady = false
+    hasDeliveredMapReady = false
     onRegionChange = nil
     onRegionChangeComplete = nil
     onMapReady = nil
@@ -352,6 +399,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
   private func applyControlSettings(to mapView: MKMapView) {
     mapView.showsCompass = showsCompass ?? true
     mapView.showsScale = showsScale ?? false
+    mapView.applyScaleAppearance()
   }
 
   private func applyMapPadding(to mapView: MKMapView) {
@@ -365,26 +413,4 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     }
   }
 
-  private func refreshMarkerClustering() {
-    guard clusteringEnabled == true else {
-      for annotation in overlayController.allMarkerAnnotations() {
-        if let view = view.view(for: annotation) {
-          view.clusteringIdentifier = nil
-        }
-      }
-      return
-    }
-
-    for annotation in overlayController.allMarkerAnnotations() {
-      guard let view = view.view(for: annotation) else {
-        continue
-      }
-
-      if annotation.isClusterable {
-        view.clusteringIdentifier = HybridMapViewDelegate.clusteringIdentifier
-      } else {
-        view.clusteringIdentifier = nil
-      }
-    }
-  }
 }

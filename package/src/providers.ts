@@ -1,27 +1,22 @@
 import { Platform } from 'react-native';
 import type { MapProvider } from './types/map';
 
-type SupportedProvidersByPlatform = {
-  ios: readonly MapProvider[];
-  android: readonly MapProvider[];
-};
-
-const SUPPORTED_PROVIDERS: SupportedProvidersByPlatform = {
+const SUPPORTED_PROVIDERS = {
   ios: ['apple'],
   android: ['google'],
-};
+} as const satisfies Record<string, readonly MapProvider[]>;
+
+type SupportedPlatform = keyof typeof SUPPORTED_PROVIDERS;
 
 export function getDefaultMapProvider(): MapProvider {
-  switch (Platform.OS) {
-    case 'ios':
-      return 'apple';
-    case 'android':
-      return 'google';
-    default:
-      throw new Error(
-        `react-native-nitro-maps does not support platform "${Platform.OS}".`,
-      );
+  const [defaultProvider] = getSupportedProvidersForCurrentPlatform();
+  if (defaultProvider != null) {
+    return defaultProvider;
   }
+
+  throw new Error(
+    `react-native-nitro-maps does not support platform "${Platform.OS}".`,
+  );
 }
 
 export function resolveMapProvider(
@@ -46,12 +41,13 @@ function assertMapProviderSupported(provider: MapProvider): void {
 }
 
 function getSupportedProvidersForCurrentPlatform(): readonly MapProvider[] {
-  switch (Platform.OS) {
-    case 'ios':
-      return SUPPORTED_PROVIDERS.ios;
-    case 'android':
-      return SUPPORTED_PROVIDERS.android;
-    default:
-      return [];
+  if (isSupportedPlatform(Platform.OS)) {
+    return SUPPORTED_PROVIDERS[Platform.OS];
   }
+
+  return [];
+}
+
+function isSupportedPlatform(platform: string): platform is SupportedPlatform {
+  return platform in SUPPORTED_PROVIDERS;
 }

@@ -3,6 +3,7 @@ package com.margelo.nitro.nitromaps
 import android.Manifest
 import android.content.pm.PackageManager
 import android.view.View
+import android.view.ViewTreeObserver
 import androidx.annotation.Keep
 import androidx.core.content.ContextCompat
 import com.facebook.proguard.annotations.DoNotStrip
@@ -26,6 +27,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
 
   private var googleMap: GoogleMap? = null
   private var isProgrammaticUpdate = false
+  private var programmaticUpdateCount = 0
   private var hasFiredMapReady = false
   private var isDestroyed = false
   private val overlayController = MapOverlayController(null, context)
@@ -318,21 +320,19 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
     val paddingPx = padding.toPaddingPixels()
 
     val runUpdate = {
-      isProgrammaticUpdate = true
       val update = CameraUpdateFactory.newLatLngBounds(bounds, paddingPx)
       if (animated == true) {
-        map.animateCamera(update)
+        animateProgrammaticCameraUpdate {
+          map.animateCamera(update, it)
+        }
       } else {
-        map.moveCamera(update)
+        moveProgrammaticCameraUpdate {
+          map.moveCamera(update)
+        }
       }
-      isProgrammaticUpdate = false
     }
 
-    if (view.width > 0 && view.height > 0) {
-      runUpdate()
-    } else {
-      view.post { runUpdate() }
-    }
+    runWhenMapViewLaidOut(runUpdate)
   }
 
   override fun onHostResume() {
@@ -473,12 +473,16 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
       return
     }
 
-    val hasPermission = ContextCompat.checkSelfPermission(
+    val hasFineLocationPermission = ContextCompat.checkSelfPermission(
       context,
       Manifest.permission.ACCESS_FINE_LOCATION,
     ) == PackageManager.PERMISSION_GRANTED
+    val hasCoarseLocationPermission = ContextCompat.checkSelfPermission(
+      context,
+      Manifest.permission.ACCESS_COARSE_LOCATION,
+    ) == PackageManager.PERMISSION_GRANTED
 
-    if (hasPermission) {
+    if (hasFineLocationPermission || hasCoarseLocationPermission) {
       map?.isMyLocationEnabled = true
       if (_followsUserLocation == true) {
         // Google Maps does not have a direct follow mode; host apps can animate camera separately.
@@ -517,21 +521,19 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
     val paddingPx = _mapPadding.toPaddingPixels()
 
     val runUpdate = {
-      isProgrammaticUpdate = true
       val update = CameraUpdateFactory.newLatLngBounds(bounds, paddingPx)
       if (animated) {
-        map.animateCamera(update)
+        animateProgrammaticCameraUpdate {
+          map.animateCamera(update, it)
+        }
       } else {
-        map.moveCamera(update)
+        moveProgrammaticCameraUpdate {
+          map.moveCamera(update)
+        }
       }
-      isProgrammaticUpdate = false
     }
 
-    if (view.width > 0 && view.height > 0) {
-      runUpdate()
-    } else {
-      view.post { runUpdate() }
-    }
+    runWhenMapViewLaidOut(runUpdate)
   }
 
   private fun updateMapCamera(
@@ -544,13 +546,76 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
       camera.toCameraPosition(map.cameraPosition),
     )
 
-    isProgrammaticUpdate = true
     if (animated) {
-      map.animateCamera(update, durationMs, null)
+      animateProgrammaticCameraUpdate {
+        map.animateCamera(update, durationMs, it)
+      }
     } else {
-      map.moveCamera(update)
+      moveProgrammaticCameraUpdate {
+        map.moveCamera(update)
+      }
     }
-    isProgrammaticUpdate = false
+  }
+
+  private fun runWhenMapViewLaidOut(block: () -> Unit) {
+    if (view.width > 0 && view.height > 0) {
+      block()
+      return
+    }
+
+    view.viewTreeObserver.addOnGlobalLayoutListener(
+      object : ViewTreeObserver.OnGlobalLayoutListener {
+        override fun onGlobalLayout() {
+          if (view.width <= 0 || view.height <= 0) {
+            return
+          }
+
+          view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+          block()
+        }
+      },
+    )
+  }
+
+  private fun beginProgrammaticUpdate() {
+    programmaticUpdateCount += 1
+    isProgrammaticUpdate = true
+  }
+
+  private fun endProgrammaticUpdate() {
+    if (programmaticUpdateCount > 0) {
+      programmaticUpdateCount -= 1
+    }
+    isProgrammaticUpdate = programmaticUpdateCount > 0
+  }
+
+  private fun moveProgrammaticCameraUpdate(block: () -> Unit) {
+    beginProgrammaticUpdate()
+    try {
+      block()
+    } finally {
+      endProgrammaticUpdate()
+    }
+  }
+
+  private fun animateProgrammaticCameraUpdate(block: (GoogleMap.CancelableCallback) -> Unit) {
+    beginProgrammaticUpdate()
+    try {
+      block(
+        object : GoogleMap.CancelableCallback {
+          override fun onFinish() {
+            endProgrammaticUpdate()
+          }
+
+          override fun onCancel() {
+            endProgrammaticUpdate()
+          }
+        },
+      )
+    } catch (throwable: Throwable) {
+      endProgrammaticUpdate()
+      throw throwable
+    }
   }
 
   private fun currentRegion(): Region {
@@ -591,6 +656,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
 
   override fun prepareForRecycle() {
     isProgrammaticUpdate = false
+    programmaticUpdateCount = 0
     hasFiredMapReady = false
     onRegionChange = null
     onRegionChangeComplete = null
