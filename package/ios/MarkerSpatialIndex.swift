@@ -84,15 +84,28 @@ final class MarkerSpatialIndex {
   }
 
   private func longitudeColumnRange(minLon: Double, maxLon: Double) -> [Int] {
-    if minLon <= maxLon {
-      let colStart = clampedColumn(minLon)
-      let colEnd = clampedColumn(maxLon)
+    if maxLon - minLon >= 360.0 {
+      return Array(0..<cellsPerSide)
+    }
+
+    let wrappedMin = wrapLongitude(minLon)
+    let wrappedMax = wrapLongitude(maxLon)
+    if wrappedMin <= wrappedMax && maxLon <= 180.0 && minLon >= -180.0 {
+      let colStart = clampedColumn(wrappedMin)
+      let colEnd = clampedColumn(wrappedMax)
       return Array(colStart...colEnd)
     }
 
-    let firstRange = clampedColumn(minLon)...cellsPerSide - 1
-    let secondRange = 0...clampedColumn(maxLon)
+    let firstRange = clampedColumn(wrappedMin)...cellsPerSide - 1
+    let secondRange = 0...clampedColumn(wrappedMax)
     return Array(firstRange) + Array(secondRange)
+  }
+
+  private func wrapLongitude(_ lon: Double) -> Double {
+    var wrapped = lon
+    while wrapped > 180.0 { wrapped -= 360.0 }
+    while wrapped < -180.0 { wrapped += 360.0 }
+    return wrapped
   }
 
   private func cellIndex(lat: Double, lon: Double) -> Int {

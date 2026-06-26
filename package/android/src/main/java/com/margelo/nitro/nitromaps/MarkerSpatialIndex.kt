@@ -89,15 +89,28 @@ internal class MarkerSpatialIndex(
   }
 
   private fun longitudeColumns(minLon: Double, maxLon: Double): List<Int> {
-    if (minLon <= maxLon) {
-      val colStart = clampedColumn(minLon)
-      val colEnd = clampedColumn(maxLon)
+    if (maxLon - minLon >= 360.0) {
+      return (0 until side).toList()
+    }
+
+    val wrappedMin = wrapLongitude(minLon)
+    val wrappedMax = wrapLongitude(maxLon)
+    if (wrappedMin <= wrappedMax && maxLon <= 180.0 && minLon >= -180.0) {
+      val colStart = clampedColumn(wrappedMin)
+      val colEnd = clampedColumn(wrappedMax)
       return (colStart..colEnd).toList()
     }
 
-    val firstRange = clampedColumn(minLon) until side
-    val secondRange = 0..clampedColumn(maxLon)
+    val firstRange = clampedColumn(wrappedMin) until side
+    val secondRange = 0..clampedColumn(wrappedMax)
     return firstRange.toList() + secondRange.toList()
+  }
+
+  private fun wrapLongitude(lon: Double): Double {
+    var wrapped = lon
+    while (wrapped > 180.0) wrapped -= 360.0
+    while (wrapped < -180.0) wrapped += 360.0
+    return wrapped
   }
 
   private fun cellIndex(lat: Double, lon: Double): Int {
