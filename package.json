@@ -12,7 +12,6 @@
     "nitrogen": "bun run --filter react-native-nitro-maps nitrogen",
     "example": "bun run --filter react-native-nitro-maps-example",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
     "commitlint": "commitlint",
     "prepare": "husky"
   },

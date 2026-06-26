@@ -39,7 +39,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/). 
 
 Format:
 
-```
+```text
 <type>[optional scope]: <description>
 ```
 
@@ -47,7 +47,7 @@ Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 
 Examples:
 
-```
+```text
 feat: add marker clustering support
 fix(ios): correct viewport filter for wrapped longitudes
 chore: add commitlint configuration
