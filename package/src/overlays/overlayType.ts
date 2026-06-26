@@ -16,3 +16,10 @@ export type OverlayTypeName = (typeof OverlayType)[keyof typeof OverlayType];
 export interface OverlayComponentType {
   overlayType?: OverlayTypeName;
 }
+
+export function overlayCallbackKey(
+  type: OverlayTypeName,
+  id: string,
+): string {
+  return `${type}:${id}`;
+}

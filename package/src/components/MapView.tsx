@@ -3,6 +3,7 @@ import { callback } from 'react-native-nitro-modules';
 import { useCollectedOverlays } from '../hooks/useCollectedOverlays';
 import { NativeMapView } from '../native/MapViewNative';
 import type { MapView as NativeMapViewHybrid } from '../native/specs/MapView.nitro';
+import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
 import type { Coordinate } from '../types/coordinate';
 import type { MapViewProps } from '../types/map';
 import type { MapViewRef } from '../types/ref';
@@ -58,21 +59,13 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
   } = useCollectedOverlays(children);
 
   const markers =
-    markersProp != null && markersProp.length > 0
-      ? markersProp
-      : collectedMarkers;
+    markersProp != null ? markersProp : collectedMarkers;
   const polylines =
-    polylinesProp != null && polylinesProp.length > 0
-      ? polylinesProp
-      : collectedPolylines;
+    polylinesProp != null ? polylinesProp : collectedPolylines;
   const polygons =
-    polygonsProp != null && polygonsProp.length > 0
-      ? polygonsProp
-      : collectedPolygons;
+    polygonsProp != null ? polygonsProp : collectedPolygons;
   const circles =
-    circlesProp != null && circlesProp.length > 0
-      ? circlesProp
-      : collectedCircles;
+    circlesProp != null ? circlesProp : collectedCircles;
 
   const hasMarkerPress =
     onMarkerPressProp != null || hasCollectedMarkerPress;
@@ -87,7 +80,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   const handleMarkerPress = useCallback(
     (id: string) => {
-      callbackRegistry.current.get(id)?.onPress?.();
+      callbackRegistry.current.get(overlayCallbackKey(OverlayType.Marker, id))?.onPress?.();
       onMarkerPressProp?.(id);
     },
     [callbackRegistry, onMarkerPressProp],
@@ -95,7 +88,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   const handleMarkerDragEnd = useCallback(
     (id: string, coordinate: Coordinate) => {
-      callbackRegistry.current.get(id)?.onDragEnd?.(coordinate);
+      callbackRegistry.current.get(overlayCallbackKey(OverlayType.Marker, id))?.onDragEnd?.(coordinate);
       onMarkerDragEndProp?.(id, coordinate);
     },
     [callbackRegistry, onMarkerDragEndProp],
@@ -103,7 +96,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   const handlePolylinePress = useCallback(
     (id: string) => {
-      callbackRegistry.current.get(id)?.onPress?.();
+      callbackRegistry.current.get(overlayCallbackKey(OverlayType.Polyline, id))?.onPress?.();
       onPolylinePressProp?.(id);
     },
     [callbackRegistry, onPolylinePressProp],
@@ -111,7 +104,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   const handlePolygonPress = useCallback(
     (id: string) => {
-      callbackRegistry.current.get(id)?.onPress?.();
+      callbackRegistry.current.get(overlayCallbackKey(OverlayType.Polygon, id))?.onPress?.();
       onPolygonPressProp?.(id);
     },
     [callbackRegistry, onPolygonPressProp],
@@ -119,7 +112,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   const handleCirclePress = useCallback(
     (id: string) => {
-      callbackRegistry.current.get(id)?.onPress?.();
+      callbackRegistry.current.get(overlayCallbackKey(OverlayType.Circle, id))?.onPress?.();
       onCirclePressProp?.(id);
     },
     [callbackRegistry, onCirclePressProp],
@@ -173,10 +166,10 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
       customMapStyle={customMapStyle}
       clusteringEnabled={clusteringEnabled}
       mapPadding={mapPadding}
-      markers={markers.length > 0 ? markers : undefined}
-      polylines={polylines.length > 0 ? polylines : undefined}
-      polygons={polygons.length > 0 ? polygons : undefined}
-      circles={circles.length > 0 ? circles : undefined}
+      markers={markers}
+      polylines={polylines}
+      polygons={polygons}
+      circles={circles}
       onRegionChange={
         onRegionChange == null ? undefined : callback(onRegionChange)
       }

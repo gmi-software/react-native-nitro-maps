@@ -73,19 +73,19 @@ export interface MapViewProps {
   /** Bulk circle descriptors. */
   circles?: CircleDescriptor[];
 
-  /** Called when any marker is pressed (bulk or child overlays). */
+  /** Called when any marker is pressed. */
   onMarkerPress?: (id: string) => void;
 
-  /** Called when any marker drag ends (bulk or child overlays). */
+  /** Called when any marker drag ends. */
   onMarkerDragEnd?: (id: string, coordinate: Coordinate) => void;
 
-  /** Called when any polyline is pressed (bulk or child overlays). */
+  /** Called when any polyline is pressed. */
   onPolylinePress?: (id: string) => void;
 
-  /** Called when any polygon is pressed (bulk or child overlays). */
+  /** Called when any polygon is pressed. */
   onPolygonPress?: (id: string) => void;
 
-  /** Called when any circle is pressed (bulk or child overlays). */
+  /** Called when any circle is pressed. */
   onCirclePress?: (id: string) => void;
 
   /** Called when the map region changes after user interaction. */

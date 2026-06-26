@@ -36,6 +36,37 @@ internal sealed interface ClusterElement {
 internal object MarkerClusterEngine {
   private const val CELL_DP = 64.0
 
+  private fun wrapsLongitude(sw: LatLng, ne: LatLng): Boolean {
+    return ne.longitude < sw.longitude
+  }
+
+  private fun longitudeSpan(sw: LatLng, ne: LatLng): Double {
+    val raw = ne.longitude - sw.longitude
+    return if (raw < 0) raw + 360.0 else raw
+  }
+
+  private fun normalizeLongitude(lon: Double, reference: Double): Double {
+    var normalized = lon
+    while (normalized - reference > 180.0) {
+      normalized -= 360.0
+    }
+    while (normalized - reference < -180.0) {
+      normalized += 360.0
+    }
+    return normalized
+  }
+
+  private fun wrapTo180(lon: Double): Double {
+    var wrapped = lon
+    while (wrapped > 180.0) {
+      wrapped -= 360.0
+    }
+    while (wrapped < -180.0) {
+      wrapped += 360.0
+    }
+    return wrapped
+  }
+
   /**
    * Snaps a cell size (degrees) to the nearest power of two so small zoom
    * changes keep the same absolute grid.
@@ -77,16 +108,21 @@ internal object MarkerClusterEngine {
     val rows = maxOf(1, (viewHeightPx / cellPx).toInt())
     val sw = bounds.southwest
     val ne = bounds.northeast
+    val wraps = wrapsLongitude(sw, ne)
     // Quantize cell size and anchor the grid to absolute (0,0) coordinates so
     // cells stay fixed to geography while panning — clusters don't churn or
     // "swim", only re-forming when the zoom level crosses an octave.
     val cellLat = quantize((ne.latitude - sw.latitude) / rows)
-    val cellLon = quantize((ne.longitude - sw.longitude) / cols)
+    val cellLon = quantize(longitudeSpan(sw, ne) / cols)
 
     val buckets = HashMap<String, Bucket>()
     for (descriptor in clusterableCandidates) {
       val lat = descriptor.coordinate.latitude
-      val lon = descriptor.coordinate.longitude
+      val lon = if (wraps) {
+        normalizeLongitude(descriptor.coordinate.longitude, sw.longitude)
+      } else {
+        descriptor.coordinate.longitude
+      }
       val row = floor(lat / cellLat).toInt()
       val col = floor(lon / cellLon).toInt()
       val key = "$row:$col"
@@ -108,6 +144,7 @@ internal object MarkerClusterEngine {
     val merged = mergeOverlapping(
       ArrayList(buckets.values),
       bounds,
+      wraps,
       viewWidthPx,
       viewHeightPx,
       density,
@@ -127,8 +164,8 @@ internal object MarkerClusterEngine {
             count = bucket.count,
             memberIds = bucket.memberIds,
             bounds = LatLngBounds(
-              LatLng(bucket.minLat, bucket.minLon),
-              LatLng(bucket.maxLat, bucket.maxLon),
+              LatLng(bucket.minLat, wrapTo180(bucket.minLon)),
+              LatLng(bucket.maxLat, wrapTo180(bucket.maxLon)),
             ),
           ),
         )
@@ -152,6 +189,7 @@ internal object MarkerClusterEngine {
   private fun mergeOverlapping(
     buckets: ArrayList<Bucket>,
     bounds: LatLngBounds,
+    wraps: Boolean,
     viewWidthPx: Int,
     viewHeightPx: Int,
     density: Float,
@@ -166,16 +204,24 @@ internal object MarkerClusterEngine {
     val sw = bounds.southwest
     val ne = bounds.northeast
     val centerLat = (sw.latitude + ne.latitude) / 2
-    val centerLon = (sw.longitude + ne.longitude) / 2
     val spanLat = maxOf(ne.latitude - sw.latitude, 1e-9)
-    val spanLon = maxOf(ne.longitude - sw.longitude, 1e-9)
+    val spanLon = maxOf(longitudeSpan(sw, ne), 1e-9)
+    val centerLon = if (wraps) {
+      normalizeLongitude(sw.longitude + spanLon / 2, sw.longitude)
+    } else {
+      (sw.longitude + ne.longitude) / 2
+    }
 
     val px = DoubleArray(n)
     val py = DoubleArray(n)
     for (i in 0 until n) {
       val bucket = buckets[i]
       val lat = bucket.sumLat / bucket.count
-      val lon = bucket.sumLon / bucket.count
+      val lon = if (wraps) {
+        normalizeLongitude(bucket.sumLon / bucket.count, sw.longitude)
+      } else {
+        bucket.sumLon / bucket.count
+      }
       px[i] = (lon - centerLon) / spanLon * width
       py[i] = (centerLat - lat) / spanLat * height
     }

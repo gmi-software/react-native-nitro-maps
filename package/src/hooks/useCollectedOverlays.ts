@@ -17,7 +17,7 @@ import { Marker } from '../components/Marker';
 import { Polygon } from '../components/Polygon';
 import { Polyline } from '../components/Polyline';
 import type { OverlayComponentType, OverlayTypeName } from '../overlays/overlayType';
-import { OverlayType } from '../overlays/overlayType';
+import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
 
 interface OverlayCallbacks {
   onPress?: () => void;
@@ -84,7 +84,6 @@ interface OverlayCollectorState {
 interface OverlayCollector {
   overlayType: OverlayTypeName;
   component: unknown;
-  idPrefix: string;
   collect: (child: ReactElement, state: OverlayCollectorState) => void;
 }
 
@@ -99,7 +98,6 @@ const overlayCollectors: OverlayCollector[] = [
   {
     overlayType: OverlayType.Marker,
     component: Marker,
-    idPrefix: 'marker',
     collect: (child, state) => {
       const props = child.props as MarkerProps;
       const id = resolveOverlayId(props.id, 'marker', state.markerIndex);
@@ -113,7 +111,7 @@ const overlayCollectors: OverlayCollector[] = [
         draggable: props.draggable,
         clusterable: props.clusterable,
       });
-      state.registry.set(id, {
+      state.registry.set(overlayCallbackKey(OverlayType.Marker, id), {
         onPress: props.onPress,
         onDragEnd: props.onDragEnd,
       });
@@ -128,7 +126,6 @@ const overlayCollectors: OverlayCollector[] = [
   {
     overlayType: OverlayType.Polyline,
     component: Polyline,
-    idPrefix: 'polyline',
     collect: (child, state) => {
       const props = child.props as PolylineProps;
       const id = resolveOverlayId(props.id, 'polyline', state.polylineIndex);
@@ -141,7 +138,7 @@ const overlayCollectors: OverlayCollector[] = [
         strokeWidth: props.strokeWidth,
         tappable: tappableFromPress(props.onPress, props.tappable),
       });
-      state.registry.set(id, { onPress: props.onPress });
+      state.registry.set(overlayCallbackKey(OverlayType.Polyline, id), { onPress: props.onPress });
       if (props.onPress != null) {
         state.hasPolylinePress = true;
       }
@@ -150,7 +147,6 @@ const overlayCollectors: OverlayCollector[] = [
   {
     overlayType: OverlayType.Polygon,
     component: Polygon,
-    idPrefix: 'polygon',
     collect: (child, state) => {
       const props = child.props as PolygonProps;
       const id = resolveOverlayId(props.id, 'polygon', state.polygonIndex);
@@ -164,7 +160,7 @@ const overlayCollectors: OverlayCollector[] = [
         strokeWidth: props.strokeWidth,
         tappable: tappableFromPress(props.onPress, props.tappable),
       });
-      state.registry.set(id, { onPress: props.onPress });
+      state.registry.set(overlayCallbackKey(OverlayType.Polygon, id), { onPress: props.onPress });
       if (props.onPress != null) {
         state.hasPolygonPress = true;
       }
@@ -173,7 +169,6 @@ const overlayCollectors: OverlayCollector[] = [
   {
     overlayType: OverlayType.Circle,
     component: Circle,
-    idPrefix: 'circle',
     collect: (child, state) => {
       const props = child.props as CircleProps;
       const id = resolveOverlayId(props.id, 'circle', state.circleIndex);
@@ -188,7 +183,7 @@ const overlayCollectors: OverlayCollector[] = [
         strokeWidth: props.strokeWidth,
         tappable: tappableFromPress(props.onPress, props.tappable),
       });
-      state.registry.set(id, { onPress: props.onPress });
+      state.registry.set(overlayCallbackKey(OverlayType.Circle, id), { onPress: props.onPress });
       if (props.onPress != null) {
         state.hasCirclePress = true;
       }

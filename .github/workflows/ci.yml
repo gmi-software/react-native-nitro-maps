@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Codegen
+        run: bun run nitrogen
+
       - name: Lint
         run: bun run lint
 

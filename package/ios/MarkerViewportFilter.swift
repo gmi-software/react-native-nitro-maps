@@ -94,9 +94,15 @@ private extension MKCoordinateRegion {
     let minLon = center.longitude - span.longitudeDelta / 2 - lonPadding
     let maxLon = center.longitude + span.longitudeDelta / 2 + lonPadding
 
+    let lonInRegion: Bool
+    if minLon <= maxLon {
+      lonInRegion = coordinate.longitude >= minLon && coordinate.longitude <= maxLon
+    } else {
+      lonInRegion = coordinate.longitude >= minLon || coordinate.longitude <= maxLon
+    }
+
     return coordinate.latitude >= minLat
       && coordinate.latitude <= maxLat
-      && coordinate.longitude >= minLon
-      && coordinate.longitude <= maxLon
+      && lonInRegion
   }
 }

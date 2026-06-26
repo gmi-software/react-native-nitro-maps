@@ -8,6 +8,7 @@ import android.graphics.RadialGradient
 import android.graphics.Shader
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import java.util.Locale
 
 /** Builds and caches circular cluster badge icons (gradient + soft shadow). */
 internal class ClusterIconFactory(private val density: Float) {
@@ -65,6 +66,6 @@ internal class ClusterIconFactory(private val density: Float) {
   }
 
   private fun formatCount(count: Int): String {
-    return if (count >= 1000) String.format("%.1fk", count / 1000.0) else count.toString()
+    return if (count >= 1000) String.format(Locale.US, "%.1fk", count / 1000.0) else count.toString()
   }
 }

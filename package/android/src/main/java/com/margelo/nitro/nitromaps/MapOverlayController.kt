@@ -123,6 +123,9 @@ class MapOverlayController(
     if (!usesViewportPipeline()) {
       return
     }
+    if (viewWidthPx <= 0 || viewHeightPx <= 0) {
+      return
+    }
 
     val bounds = map.projection.visibleRegion.latLngBounds
     val latitudeSpan = bounds.northeast.latitude - bounds.southwest.latitude
@@ -144,12 +147,15 @@ class MapOverlayController(
 
       val nextKeys = HashSet<String>(elements.size)
       val added = ArrayList<ClusterElement>()
+      val retained = ArrayList<ClusterElement>()
       for (element in elements) {
         val key = element.diffKey
         if (!nextKeys.add(key)) {
           continue
         }
-        if (!displayed.contains(key)) {
+        if (displayed.contains(key)) {
+          retained.add(element)
+        } else {
           added.add(element)
         }
       }
@@ -159,7 +165,7 @@ class MapOverlayController(
         if (generation != refreshGeneration) {
           return@post
         }
-        applyDiff(removed, added)
+        applyDiff(removed, added, retained)
       }
     }
   }
@@ -181,7 +187,11 @@ class MapOverlayController(
     }
   }
 
-  private fun applyDiff(removedKeys: Set<String>, added: List<ClusterElement>) {
+  private fun applyDiff(
+    removedKeys: Set<String>,
+    added: List<ClusterElement>,
+    retained: List<ClusterElement>,
+  ) {
     val map = googleMap ?: return
 
     for (key in removedKeys) {
@@ -215,6 +225,27 @@ class MapOverlayController(
       }
     }
 
+    for (element in retained) {
+      val key = element.diffKey
+      val marker = markers[key] ?: continue
+      when (element) {
+        is ClusterElement.Single -> {
+          marker.position = LatLng(
+            element.descriptor.coordinate.latitude,
+            element.descriptor.coordinate.longitude,
+          )
+          marker.title = element.descriptor.title
+          marker.snippet = element.descriptor.subtitle
+          marker.isDraggable = element.descriptor.draggable == true
+        }
+        is ClusterElement.Cluster -> {
+          marker.position = element.position
+          marker.setIcon(iconFactory.icon(element.count))
+          clusterByKey[key] = element
+        }
+      }
+    }
+
     animateFadeIn(addedMarkers)
   }
 
@@ -224,13 +255,20 @@ class MapOverlayController(
       return
     }
 
-    added.forEach { runCatching { it.alpha = 0f } }
+    added.forEach { marker ->
+      if (markers.containsValue(marker)) {
+        marker.alpha = 0f
+      }
+    }
     ValueAnimator.ofFloat(0f, 1f).apply {
       duration = 220
       addUpdateListener { animator ->
         val value = animator.animatedValue as Float
-        // Markers may be removed by a later refresh mid-animation.
-        added.forEach { runCatching { it.alpha = value } }
+        added.forEach { marker ->
+          if (markers.containsValue(marker)) {
+            marker.alpha = value
+          }
+        }
       }
       start()
     }

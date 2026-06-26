@@ -70,21 +70,29 @@ final class MarkerSpatialIndex {
 
     let rowStart = clampedRow(minLatQ)
     let rowEnd = clampedRow(maxLatQ)
-    let colStart = clampedColumn(minLonQ)
-    let colEnd = clampedColumn(maxLonQ)
 
     var result: [MarkerDescriptor] = []
     var row = rowStart
     while row <= rowEnd {
       let base = row * cellsPerSide
-      var column = colStart
-      while column <= colEnd {
+      for column in longitudeColumnRange(minLon: minLonQ, maxLon: maxLonQ) {
         result.append(contentsOf: cells[base + column])
-        column += 1
       }
       row += 1
     }
     return result
+  }
+
+  private func longitudeColumnRange(minLon: Double, maxLon: Double) -> [Int] {
+    if minLon <= maxLon {
+      let colStart = clampedColumn(minLon)
+      let colEnd = clampedColumn(maxLon)
+      return Array(colStart...colEnd)
+    }
+
+    let firstRange = clampedColumn(minLon)...cellsPerSide - 1
+    let secondRange = 0...clampedColumn(maxLon)
+    return Array(firstRange) + Array(secondRange)
   }
 
   private func cellIndex(lat: Double, lon: Double) -> Int {

@@ -493,10 +493,13 @@ export default function App() {
   }, []);
 
   const selectScenario = useCallback((index: number) => {
+    if (index === scenarioIndex) {
+      return;
+    }
     setScenarioIndex(index);
     setMapReady(false);
     setStatus(MAP_SCENARIOS[index].name);
-  }, []);
+  }, [scenarioIndex]);
 
   const toggleDockExpanded = useCallback(() => {
     setDockExpanded((current) => !current);
@@ -535,11 +538,11 @@ export default function App() {
     if (scenario.advanced?.fitToCoordinatesOnReady && scenario.markers != null) {
       mapRef.current?.fitToCoordinates(
         scenario.markers.map((marker) => marker.coordinate),
-        scenario.advanced.mapPadding,
+        mapPadding,
         true,
       );
     }
-  }, [scenario]);
+  }, [scenario, mapPadding]);
 
   const handleMapPress = useCallback((coordinate: Coordinate) => {
     setStatus(

@@ -62,27 +62,42 @@ internal class MarkerSpatialIndex(
     }
 
     val latSpan = bounds.northeast.latitude - bounds.southwest.latitude
-    val lonSpan = bounds.northeast.longitude - bounds.southwest.longitude
+    val lonSpan = if (bounds.northeast.longitude < bounds.southwest.longitude) {
+      bounds.northeast.longitude - bounds.southwest.longitude + 360.0
+    } else {
+      bounds.northeast.longitude - bounds.southwest.longitude
+    }
     val latPad = latSpan * padding
     val lonPad = lonSpan * padding
 
     val rowStart = clampedRow(bounds.southwest.latitude - latPad)
     val rowEnd = clampedRow(bounds.northeast.latitude + latPad)
-    val colStart = clampedColumn(bounds.southwest.longitude - lonPad)
-    val colEnd = clampedColumn(bounds.northeast.longitude + lonPad)
+    val minLonQ = bounds.southwest.longitude - lonPad
+    val maxLonQ = bounds.northeast.longitude + lonPad
 
     val result = ArrayList<MarkerDescriptor>()
+    val columns = longitudeColumns(minLonQ, maxLonQ)
     var row = rowStart
     while (row <= rowEnd) {
       val base = row * side
-      var column = colStart
-      while (column <= colEnd) {
+      for (column in columns) {
         result.addAll(cells[base + column])
-        column += 1
       }
       row += 1
     }
     return result
+  }
+
+  private fun longitudeColumns(minLon: Double, maxLon: Double): List<Int> {
+    if (minLon <= maxLon) {
+      val colStart = clampedColumn(minLon)
+      val colEnd = clampedColumn(maxLon)
+      return (colStart..colEnd).toList()
+    }
+
+    val firstRange = clampedColumn(minLon) until side
+    val secondRange = 0..clampedColumn(maxLon)
+    return firstRange.toList() + secondRange.toList()
   }
 
   private fun cellIndex(lat: Double, lon: Double): Int {

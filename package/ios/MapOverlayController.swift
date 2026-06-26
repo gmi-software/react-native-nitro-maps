@@ -92,6 +92,9 @@ final class MapOverlayController {
     if usesViewportPipeline {
       rebuildIndexAndRefresh()
     } else {
+      viewportRefreshWorkItem?.cancel()
+      viewportRefreshWorkItem = nil
+      refreshGeneration += 1
       reconcileMarkersSync(allMarkerDescriptors)
     }
   }
@@ -180,6 +183,7 @@ final class MapOverlayController {
   private struct MarkerDiff {
     let removedKeys: Set<String>
     let added: [(key: String, annotation: MKAnnotation)]
+    let retained: [(key: String, element: MarkerClusterEngine.Element)]
   }
 
   private static func computeDiff(
@@ -189,20 +193,24 @@ final class MapOverlayController {
     var nextKeys = Set<String>()
     nextKeys.reserveCapacity(target.count)
     var added: [(key: String, annotation: MKAnnotation)] = []
+    var retained: [(key: String, element: MarkerClusterEngine.Element)] = []
 
     for element in target {
       let key = element.diffKey
       guard nextKeys.insert(key).inserted else {
         continue
       }
-      if !displayed.contains(key) {
+      if displayed.contains(key) {
+        retained.append((key, element))
+      } else {
         added.append((key, element.makeAnnotation()))
       }
     }
 
     return MarkerDiff(
       removedKeys: displayed.subtracting(nextKeys),
-      added: added
+      added: added,
+      retained: retained
     )
   }
 
@@ -224,6 +232,32 @@ final class MapOverlayController {
         annotations.append(entry.annotation)
       }
       mapView.addAnnotations(annotations)
+    }
+
+    for entry in diff.retained {
+      guard let existing = displayedAnnotations[entry.key] else {
+        continue
+      }
+
+      switch entry.element {
+      case let .single(descriptor):
+        if let marker = existing as? MapMarkerAnnotation {
+          marker.update(from: descriptor)
+        }
+      case let .cluster(key, coordinate, count, memberIds, region):
+        if let cluster = existing as? MapClusterAnnotation {
+          cluster.update(
+            id: key,
+            coordinate: coordinate,
+            count: count,
+            memberIds: memberIds,
+            region: region
+          )
+          if let view = mapView.view(for: cluster) as? NitroClusterAnnotationView {
+            view.configure(count: count)
+          }
+        }
+      }
     }
   }
 

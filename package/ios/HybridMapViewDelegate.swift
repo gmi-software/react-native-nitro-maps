@@ -108,12 +108,9 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
     }
 
     let pinView = mapView.dequeueReusableAnnotationView(
-      withIdentifier: NitroPinAnnotationView.reuseIdentifier
-    ) as? NitroPinAnnotationView
-      ?? NitroPinAnnotationView(
-        annotation: marker,
-        reuseIdentifier: NitroPinAnnotationView.reuseIdentifier
-      )
+      withIdentifier: NitroPinAnnotationView.reuseIdentifier,
+      for: marker
+    ) as! NitroPinAnnotationView
 
     pinView.configure(for: marker)
     return pinView
@@ -121,7 +118,7 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
 
   func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
     for view in views {
-      // Markers use MapKit's native drop animation; only fade in cluster badges.
+      // MKMarkerAnnotationView handles its own drop animation; only fade in cluster badges.
       guard view.annotation is MapClusterAnnotation else {
         continue
       }
@@ -153,7 +150,9 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
     }
 
     parent?.onMarkerPress?(marker.id)
-    mapView.deselectAnnotation(view.annotation, animated: true)
+    if marker.title == nil && marker.subtitle == nil {
+      mapView.deselectAnnotation(view.annotation, animated: true)
+    }
   }
 
   func mapView(

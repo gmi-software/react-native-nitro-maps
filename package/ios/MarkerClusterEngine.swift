@@ -47,6 +47,32 @@ enum MarkerClusterEngine {
   /// Target cluster cell size in points.
   private static let cellPoints: Double = 64
 
+  private static func wrapsLongitude(in region: MKCoordinateRegion) -> Bool {
+    region.span.longitudeDelta > 180
+  }
+
+  private static func normalizeLongitude(_ lon: Double, reference: Double) -> Double {
+    var normalized = lon
+    while normalized - reference > 180 {
+      normalized -= 360
+    }
+    while normalized - reference < -180 {
+      normalized += 360
+    }
+    return normalized
+  }
+
+  private static func wrapTo180(_ lon: Double) -> Double {
+    var wrapped = lon
+    while wrapped > 180 {
+      wrapped -= 360
+    }
+    while wrapped < -180 {
+      wrapped += 360
+    }
+    return wrapped
+  }
+
   /// Snaps a cell size (degrees) to the nearest power of two so small zoom
   /// changes keep the same absolute grid.
   private static func quantize(_ value: Double) -> Double {
@@ -116,6 +142,8 @@ enum MarkerClusterEngine {
 
     let cols = max(1, Int(Double(viewSize.width) / cellPoints))
     let rows = max(1, Int(Double(viewSize.height) / cellPoints))
+    let wraps = wrapsLongitude(in: region)
+    let referenceLon = region.center.longitude - region.span.longitudeDelta / 2
     // Quantize cell size and anchor the grid to absolute (0,0) coordinates so
     // cells stay fixed to geography while panning — clusters don't churn or
     // "swim", only re-forming when the zoom level crosses an octave.
@@ -125,7 +153,9 @@ enum MarkerClusterEngine {
     var buckets: [String: Bucket] = [:]
     for descriptor in clusterableCandidates {
       let lat = descriptor.coordinate.latitude
-      let lon = descriptor.coordinate.longitude
+      let lon = wraps
+        ? normalizeLongitude(descriptor.coordinate.longitude, reference: referenceLon)
+        : descriptor.coordinate.longitude
       let row = Int((lat / cellLat).rounded(.down))
       let col = Int((lon / cellLon).rounded(.down))
       let key = "\(row):\(col)"
@@ -146,7 +176,12 @@ enum MarkerClusterEngine {
       buckets[key] = bucket
     }
 
-    let merged = mergeOverlapping(Array(buckets.values), region: region, viewSize: viewSize)
+    let merged = mergeOverlapping(
+      Array(buckets.values),
+      region: region,
+      wraps: wraps,
+      viewSize: viewSize
+    )
 
     var elements = singles
     elements.reserveCapacity(merged.count + singles.count)
@@ -165,8 +200,8 @@ enum MarkerClusterEngine {
           region: expandedRegion(
             minLat: bucket.minLat,
             maxLat: bucket.maxLat,
-            minLon: bucket.minLon,
-            maxLon: bucket.maxLon
+            minLon: wrapTo180(bucket.minLon),
+            maxLon: wrapTo180(bucket.maxLon)
           )
         ))
       }
@@ -181,6 +216,7 @@ enum MarkerClusterEngine {
   private static func mergeOverlapping(
     _ buckets: [Bucket],
     region: MKCoordinateRegion,
+    wraps: Bool,
     viewSize: CGSize
   ) -> [Bucket] {
     let n = buckets.count
@@ -191,16 +227,21 @@ enum MarkerClusterEngine {
     let width = Double(viewSize.width)
     let height = Double(viewSize.height)
     let centerLat = region.center.latitude
-    let centerLon = region.center.longitude
+    let referenceLon = region.center.longitude - region.span.longitudeDelta / 2
     let spanLat = max(region.span.latitudeDelta, 1e-9)
     let spanLon = max(region.span.longitudeDelta, 1e-9)
+    let centerLon = wraps
+      ? normalizeLongitude(referenceLon + spanLon / 2, reference: referenceLon)
+      : region.center.longitude
 
     var px = [Double](repeating: 0, count: n)
     var py = [Double](repeating: 0, count: n)
     for i in 0..<n {
       let bucket = buckets[i]
       let lat = bucket.sumLat / Double(bucket.count)
-      let lon = bucket.sumLon / Double(bucket.count)
+      let lon = wraps
+        ? normalizeLongitude(bucket.sumLon / Double(bucket.count), reference: referenceLon)
+        : bucket.sumLon / Double(bucket.count)
       px[i] = (lon - centerLon) / spanLon * width
       py[i] = (centerLat - lat) / spanLat * height
     }

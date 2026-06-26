@@ -251,12 +251,11 @@ final class HybridMapView: HybridMapViewSpec {
     guard liveClusterTimer == nil else {
       return
     }
-    liveClusterTimer = Timer.scheduledTimer(
-      withTimeInterval: 0.1,
-      repeats: true
-    ) { [weak self] _ in
+    let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
       self?.overlayController.refreshNow()
     }
+    RunLoop.main.add(timer, forMode: .common)
+    liveClusterTimer = timer
   }
 
   func stopLiveClustering() {
@@ -322,6 +321,8 @@ final class HybridMapView: HybridMapViewSpec {
   }
 
   func prepareForRecycle() {
+    liveClusterTimer?.invalidate()
+    liveClusterTimer = nil
     isProgrammaticUpdate = false
     hasFiredMapReady = false
     onRegionChange = nil
