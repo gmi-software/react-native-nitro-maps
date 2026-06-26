@@ -2,6 +2,8 @@ package com.margelo.nitro.nitromaps
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.annotation.Keep
@@ -35,6 +37,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
   private var pendingPolylines: Array<PolylineDescriptor>? = null
   private var pendingPolygons: Array<PolygonDescriptor>? = null
   private var pendingCircles: Array<CircleDescriptor>? = null
+  private val mainHandler = Handler(Looper.getMainLooper())
 
   override val view: MapView = MapView(context).also { mapView ->
     mapView.onCreate(null)
@@ -259,7 +262,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
   override fun fetchCamera(): Promise<Camera> {
     val map = googleMap
     if (map != null) {
-      return Promise.resolved(map.cameraPosition.toCamera())
+      return promiseOnMain { map.cameraPosition.toCamera() }
     }
 
     return Promise.resolved(
@@ -286,9 +289,9 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
   }
 
   override fun getVisibleRegion(): Promise<VisibleRegion> {
-    val projection = googleMap?.projection
-    if (projection != null) {
-      return Promise.resolved(projection.toNitroVisibleRegion())
+    val map = googleMap
+    if (map != null) {
+      return promiseOnMain { map.projection.toNitroVisibleRegion() }
     }
 
     val zero = Coordinate(latitude = 0.0, longitude = 0.0)
@@ -311,28 +314,30 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
       return
     }
 
-    val map = googleMap ?: return
-    val builder = LatLngBounds.Builder()
-    for (coordinate in coordinates) {
-      builder.include(LatLng(coordinate.latitude, coordinate.longitude))
-    }
-    val bounds = builder.build()
-    val paddingPx = padding.toPaddingPixels()
+    runOnMain {
+      val map = googleMap ?: return@runOnMain
+      val builder = LatLngBounds.Builder()
+      for (coordinate in coordinates) {
+        builder.include(LatLng(coordinate.latitude, coordinate.longitude))
+      }
+      val bounds = builder.build()
+      val paddingPx = padding.toPaddingPixels()
 
-    val runUpdate = {
-      val update = CameraUpdateFactory.newLatLngBounds(bounds, paddingPx)
-      if (animated == true) {
-        animateProgrammaticCameraUpdate {
-          map.animateCamera(update, it)
-        }
-      } else {
-        moveProgrammaticCameraUpdate {
-          map.moveCamera(update)
+      val runUpdate = {
+        val update = CameraUpdateFactory.newLatLngBounds(bounds, paddingPx)
+        if (animated == true) {
+          animateProgrammaticCameraUpdate {
+            map.animateCamera(update, it)
+          }
+        } else {
+          moveProgrammaticCameraUpdate {
+            map.moveCamera(update)
+          }
         }
       }
-    }
 
-    runWhenMapViewLaidOut(runUpdate)
+      runWhenMapViewLaidOut(runUpdate)
+    }
   }
 
   override fun onHostResume() {
@@ -541,18 +546,20 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
     animated: Boolean,
     durationMs: Int = 0,
   ) {
-    val map = googleMap ?: return
-    val update = CameraUpdateFactory.newCameraPosition(
-      camera.toCameraPosition(map.cameraPosition),
-    )
+    runOnMain {
+      val map = googleMap ?: return@runOnMain
+      val update = CameraUpdateFactory.newCameraPosition(
+        camera.toCameraPosition(map.cameraPosition),
+      )
 
-    if (animated) {
-      animateProgrammaticCameraUpdate {
-        map.animateCamera(update, durationMs, it)
-      }
-    } else {
-      moveProgrammaticCameraUpdate {
-        map.moveCamera(update)
+      if (animated) {
+        animateProgrammaticCameraUpdate {
+          map.animateCamera(update, durationMs, it)
+        }
+      } else {
+        moveProgrammaticCameraUpdate {
+          map.moveCamera(update)
+        }
       }
     }
   }
@@ -575,6 +582,26 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
         }
       },
     )
+  }
+
+  private fun runOnMain(block: () -> Unit) {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      block()
+    } else {
+      mainHandler.post(block)
+    }
+  }
+
+  private fun <T> promiseOnMain(block: () -> T): Promise<T> {
+    val promise = Promise<T>()
+    runOnMain {
+      try {
+        promise.resolve(block())
+      } catch (error: Throwable) {
+        promise.reject(error)
+      }
+    }
+    return promise
   }
 
   private fun beginProgrammaticUpdate() {

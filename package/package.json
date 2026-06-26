@@ -30,7 +30,7 @@
     "build": "bob build",
     "typecheck": "tsc --noEmit",
     "typecheck:provider-types": "tsc --noEmit -p tsconfig.type-tests.json",
-    "nitrogen": "nitrogen"
+    "nitrogen": "nitrogen && bun ./scripts/patch-nitrogen-generated.mjs"
   },
   "keywords": [
     "react-native",
