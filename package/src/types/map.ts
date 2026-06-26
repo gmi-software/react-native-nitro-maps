@@ -110,6 +110,9 @@ interface ExistingDefaultProviderProps extends BaseMapViewProps {
    */
   provider?: undefined;
 
+  /** Google Map IDs are only supported by the Google provider. */
+  googleMapId?: never;
+
   /** Whether to show the scale control (supported by Apple MapKit). */
   showsScale?: boolean;
 
@@ -122,6 +125,9 @@ interface ExistingDefaultProviderProps extends BaseMapViewProps {
 
 interface AppleMapViewProps extends BaseMapViewProps {
   provider: 'apple';
+
+  /** Google Map IDs are only supported by the Google provider. */
+  googleMapId?: never;
 
   /** Whether to show the scale control. */
   showsScale?: boolean;
@@ -136,6 +142,9 @@ interface AppleMapViewProps extends BaseMapViewProps {
 interface GoogleMapViewProps extends BaseMapViewProps {
   provider: 'google';
 
+  /** Google Cloud Map ID for cloud-based Google Maps styling. */
+  googleMapId?: string;
+
   /** Google Maps SDK has no native scale control. */
   showsScale?: never;
 
@@ -148,6 +157,7 @@ interface GoogleMapViewProps extends BaseMapViewProps {
 
 interface OpenStreetMapViewProps extends BaseMapViewProps {
   provider: 'openstreetmap';
+  googleMapId?: never;
   showsScale?: never;
   customMapStyle?: never;
   clusteringEnabled?: never;
@@ -155,6 +165,7 @@ interface OpenStreetMapViewProps extends BaseMapViewProps {
 
 interface MapboxMapViewProps extends BaseMapViewProps {
   provider: 'mapbox';
+  googleMapId?: never;
   showsScale?: never;
   customMapStyle?: never;
   clusteringEnabled?: never;

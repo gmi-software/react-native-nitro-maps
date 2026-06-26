@@ -8,6 +8,7 @@ export const appleProps: MapViewPropsForProvider<'apple'> = {
 
 export const googleProps: MapViewPropsForProvider<'google'> = {
   provider: 'google',
+  googleMapId: 'google-map-id',
   customMapStyle: '[]',
   clusteringEnabled: true,
 };
@@ -25,6 +26,12 @@ export const googleScaleProps: MapViewPropsForProvider<'google'> = {
   provider: 'google',
   // @ts-expect-error Google Maps SDK does not expose a native scale control.
   showsScale: true,
+};
+
+export const appleMapIdProps: MapViewPropsForProvider<'apple'> = {
+  provider: 'apple',
+  // @ts-expect-error Google Map IDs are only supported by the Google provider.
+  googleMapId: 'google-map-id',
 };
 
 export const openStreetMapClusteringProps: MapViewPropsForProvider<'openstreetmap'> =

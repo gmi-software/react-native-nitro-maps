@@ -29,6 +29,7 @@ class HybridMapView(private val context: ThemedReactContext) :
   private var _showsCompass: Boolean? = null
   private var _showsScale: Boolean? = null
   private var _customMapStyle: String? = null
+  private var _googleMapId: String? = null
   private var _clusteringEnabled: Boolean? = null
   private var _mapPadding: EdgePadding? = null
 
@@ -128,6 +129,18 @@ class HybridMapView(private val context: ThemedReactContext) :
     set(value) {
       _customMapStyle = value
       adapter?.customMapStyle = value
+    }
+
+  override var googleMapId: String?
+    get() = _googleMapId
+    set(value) {
+      if (_googleMapId == value) {
+        return
+      }
+      _googleMapId = value
+      if (_provider == MapProvider.GOOGLE && adapter != null) {
+        installAdapter(_provider)
+      }
     }
 
   override var clusteringEnabled: Boolean?
@@ -271,6 +284,7 @@ class HybridMapView(private val context: ThemedReactContext) :
     _showsCompass = null
     _showsScale = null
     _customMapStyle = null
+    _googleMapId = null
     _clusteringEnabled = null
     _mapPadding = null
     onRegionChange = null
@@ -309,7 +323,7 @@ class HybridMapView(private val context: ThemedReactContext) :
 
   private fun makeAdapter(provider: MapProvider): MapProviderAdapter {
     return when (provider) {
-      MapProvider.GOOGLE -> GoogleMapProviderAdapter(context)
+      MapProvider.GOOGLE -> GoogleMapProviderAdapter(context, _googleMapId)
       MapProvider.APPLE,
       MapProvider.OPENSTREETMAP,
       MapProvider.MAPBOX,
@@ -341,6 +355,7 @@ class HybridMapView(private val context: ThemedReactContext) :
     adapter.showsCompass = _showsCompass
     adapter.showsScale = _showsScale
     adapter.customMapStyle = _customMapStyle
+    adapter.googleMapId = _googleMapId
     adapter.clusteringEnabled = _clusteringEnabled
     adapter.onRegionChange = onRegionChange
     adapter.onRegionChangeComplete = onRegionChangeComplete

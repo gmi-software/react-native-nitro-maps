@@ -2,7 +2,7 @@
 
 High-performance maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
-> **Status: Work in Progress** — Native rendering exists for the default providers: Apple MapKit on iOS and Google Maps SDK on Android. Additional providers are planned.
+> **Status: Work in Progress** — Native rendering exists for Apple MapKit on iOS and Google Maps SDK on iOS and Android. Additional providers are planned.
 
 ## Goals
 
@@ -96,7 +96,7 @@ Current provider availability:
 | Provider        | iOS       | Android     | Notes                           |
 | --------------- | --------- | ----------- | ------------------------------- |
 | `apple`         | Supported | Unsupported | Apple MapKit                    |
-| `google`        | Planned   | Supported   | Google Maps SDK                 |
+| `google`        | Supported | Supported   | Google Maps SDK                 |
 | `openstreetmap` | Planned   | Planned     | No rendering implementation yet |
 | `mapbox`        | Planned   | Planned     | No rendering implementation yet |
 
@@ -104,23 +104,41 @@ Unsupported explicit providers throw before a native map view is created. Changi
 
 Provider-specific TypeScript props are exposed through `MapViewPropsForProvider<P>`. For example, `showsScale` is accepted for `apple` but rejected for `google` because Google Maps SDK has no native scale control.
 
+#### Google Maps setup
+
+Host apps must provide platform API keys for the Google Maps SDK:
+
+- iOS: add a `GoogleMapsIosApiKey` string to `Info.plist`.
+- Android: add `com.google.android.geo.API_KEY` metadata to `AndroidManifest.xml`.
+
+The example app reads `GOOGLE_MAPS_IOS_API_KEY` and `GOOGLE_MAPS_ANDROID_API_KEY` from the environment. `GOOGLE_MAPS_API_KEY` remains accepted as an Android fallback for older local setups.
+
+The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling:
+
+```tsx
+<MapView provider="google" googleMapId="YOUR_MAP_ID" style={{ flex: 1 }} />
+```
+
+`googleMapId` is creation-time configuration for native SDK views. Changing it remounts the native map view, matching provider changes.
+
 ### Capability matrix
 
-| Capability           | `apple` iOS                                                 | `google` Android                           | Future providers     |
-| -------------------- | ----------------------------------------------------------- | ------------------------------------------ | -------------------- |
-| Region / camera      | Supported                                                   | Supported                                  | Planned              |
-| Camera animation     | Supported                                                   | Supported                                  | Planned              |
-| Visible region       | Supported                                                   | Supported                                  | Planned              |
-| Fit to coordinates   | Supported                                                   | Supported                                  | Planned              |
-| Map types            | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Planned              |
-| Gestures             | Supported                                                   | Supported                                  | Planned              |
-| User location        | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Planned              |
-| Compass              | Supported                                                   | Supported                                  | Planned              |
-| Scale control        | Supported                                                   | Unsupported                                | Planned per provider |
-| Markers / overlays   | Supported                                                   | Supported                                  | Planned              |
-| Overlay press events | Supported                                                   | Supported                                  | Planned              |
-| Clustering           | Supported                                                   | Supported                                  | Planned per provider |
-| Custom styles        | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Planned per provider |
+| Capability           | `apple` iOS                                                 | `google` iOS                               | `google` Android                           | Future providers     |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ | -------------------- |
+| Region / camera      | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Camera animation     | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Visible region       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Fit to coordinates   | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Map types            | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Standard, satellite, hybrid, terrain       | Planned              |
+| Gestures             | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| User location        | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Supported; host app owns permission prompt | Planned              |
+| Compass              | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Scale control        | Supported                                                   | Unsupported                                | Unsupported                                | Planned per provider |
+| Markers / overlays   | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Overlay press events | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Clustering           | Supported                                                   | Supported                                  | Supported                                  | Planned per provider |
+| Custom styles        | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Google Maps JSON styles                    | Planned per provider |
+| Google Map ID        | Unsupported                                                 | Supported                                  | Supported                                  | Planned per provider |
 
 ## Public API
 

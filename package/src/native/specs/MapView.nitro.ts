@@ -23,6 +23,9 @@ export interface MapViewProps extends HybridViewProps {
   /** Native rendering backend for the map view. */
   provider?: MapProvider;
 
+  /** Google Cloud Map ID for cloud-based Google Maps styling. */
+  googleMapId?: string;
+
   /**
    * The visual style of the map.
    *

@@ -16,6 +16,7 @@ protocol MapProviderAdapter: AnyObject {
   var showsCompass: Bool? { get set }
   var showsScale: Bool? { get set }
   var customMapStyle: String? { get set }
+  var googleMapId: String? { get set }
   var clusteringEnabled: Bool? { get set }
   var mapPadding: EdgePadding? { get set }
 

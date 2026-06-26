@@ -29,11 +29,17 @@ The library does not ship an API key. Host apps must provide one in their `Andro
   android:value="YOUR_API_KEY" />
 ```
 
-For the example Expo app, set `GOOGLE_MAPS_API_KEY` (see `example/.env.example`) before running `expo prebuild` or `expo run:android`.
+For the example Expo app, set `GOOGLE_MAPS_ANDROID_API_KEY` (see `example/.env.example`) before running `expo prebuild` or `expo run:android`. `GOOGLE_MAPS_API_KEY` remains accepted as an Android fallback for older local setups.
+
+`googleMapId` is supported for Google Cloud Map ID styling:
+
+```tsx
+<MapView provider="google" googleMapId="YOUR_MAP_ID" />
+```
 
 ## Getting started
 
 1. Run `bun run nitrogen` from the repo root if you change the Nitro spec.
-2. Build the example app: `GOOGLE_MAPS_API_KEY=your-key bun example android`.
+2. Build the example app: `GOOGLE_MAPS_ANDROID_API_KEY=your-key bun example android`.
 
 See [src/native/README.md](../src/native/README.md) for the JS ↔ native architecture.

@@ -120,6 +120,8 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     }
   }
 
+  var googleMapId: String?
+
   var clusteringEnabled: Bool? {
     didSet {
       overlayController.setClusteringEnabled(clusteringEnabled == true)
@@ -425,6 +427,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     showsCompass = nil
     showsScale = nil
     customMapStyle = nil
+    googleMapId = nil
     clusteringEnabled = nil
     mapPadding = nil
     view.mapType = .standard

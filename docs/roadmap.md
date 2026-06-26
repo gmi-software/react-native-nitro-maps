@@ -69,6 +69,7 @@ Delivered incrementally during Phases 3–5; polished for platform consistency i
 ## Phase 8: Polish and release
 
 - [x] Multi-provider `MapView` architecture
+- [x] Google Maps provider on iOS
 - [ ] Performance profiling and optimization
 - [ ] Comprehensive documentation site
 - [ ] Migration guide from react-native-maps
@@ -86,7 +87,6 @@ Delivered incrementally during Phases 3–5; polished for platform consistency i
 
 ## Future provider work
 
-- [ ] Google Maps provider on iOS
 - [ ] OpenStreetMap-backed provider
 - [ ] Mapbox provider
 - [ ] Provider-specific install and configuration docs
