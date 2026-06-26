@@ -9,6 +9,7 @@
     "build": "bun run --filter react-native-nitro-maps build",
     "lint": "eslint .",
     "typecheck": "bun run --filter react-native-nitro-maps typecheck",
+    "typecheck:provider-types": "bun run --filter react-native-nitro-maps typecheck:provider-types",
     "nitrogen": "bun run --filter react-native-nitro-maps nitrogen",
     "example": "bun run --filter react-native-nitro-maps-example",
     "format": "prettier --write .",

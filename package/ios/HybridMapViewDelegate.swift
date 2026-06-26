@@ -1,9 +1,9 @@
 import MapKit
 import UIKit
 
-/// Delegate and gesture handler for `HybridMapView`'s underlying `MKMapView`.
+/// Delegate and gesture handler for the Apple MapKit provider adapter.
 final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-  weak var parent: HybridMapView?
+  weak var parent: AppleMapProviderAdapter?
 
   func installGestureRecognizers(on mapView: MKMapView) {
     let tapRecognizer = UITapGestureRecognizer(

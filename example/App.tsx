@@ -38,12 +38,32 @@ import {
   MapView,
   type Coordinate,
   type EdgePadding,
+  type MapProvider,
   type MapType,
   type MapViewRef,
 } from 'react-native-nitro-maps';
 import { MAP_SCENARIOS, type MapScenario } from './examples';
 
 const MAP_TYPES: MapType[] = ['standard', 'satellite', 'hybrid'];
+type SupportedExampleProvider = Extract<MapProvider, 'apple' | 'google'>;
+
+const PROVIDER_LABELS: Record<SupportedExampleProvider, string> = {
+  apple: 'Apple MapKit',
+  google: 'Google Maps',
+};
+
+const SUPPORTED_MAP_PROVIDERS = getSupportedMapProviders();
+
+function getSupportedMapProviders(): SupportedExampleProvider[] {
+  switch (Platform.OS) {
+    case 'ios':
+      return ['apple'];
+    case 'android':
+      return ['google'];
+    default:
+      return [];
+  }
+}
 
 const MAP_TYPE_LABELS: Record<MapType, string> = {
   standard: 'Standard',
@@ -210,11 +230,13 @@ type ScenarioDockProps = {
   scenarioIndex: number;
   expanded: boolean;
   mapTypeLabel: MapType;
+  providerLabel: string;
   onToggleExpanded: () => void;
   onSelect: (index: number) => void;
   onAnimateCamera: () => void;
   onGetCamera: () => void;
   onCycleMapType: () => void;
+  onCycleProvider: () => void;
 };
 
 const ScenarioDock = memo(function ScenarioDock({
@@ -222,11 +244,13 @@ const ScenarioDock = memo(function ScenarioDock({
   scenarioIndex,
   expanded,
   mapTypeLabel,
+  providerLabel,
   onToggleExpanded,
   onSelect,
   onAnimateCamera,
   onGetCamera,
   onCycleMapType,
+  onCycleProvider,
 }: ScenarioDockProps) {
   const chevronRotation = useSharedValue(0);
 
@@ -289,6 +313,10 @@ const ScenarioDock = memo(function ScenarioDock({
                 {MAP_TYPE_LABELS[mapTypeLabel]}
               </Text>
             </ScalePressable>
+            <ScalePressable onPress={onCycleProvider} style={styles.actionButton}>
+              <Text style={styles.actionButtonIcon}>⌁</Text>
+              <Text style={styles.actionButtonText}>{providerLabel}</Text>
+            </ScalePressable>
           </View>
         </Animated.View>
       ) : null}
@@ -322,6 +350,7 @@ const ScenarioDock = memo(function ScenarioDock({
 
 type MapSceneProps = {
   scenario: MapScenario;
+  provider: SupportedExampleProvider;
   mapType: MapType;
   mapPadding?: EdgePadding;
   onMapReady: () => void;
@@ -337,6 +366,7 @@ const MapScene = memo(
   forwardRef<MapViewRef, MapSceneProps>(function MapScene(
     {
       scenario,
+      provider,
       mapType,
       mapPadding,
       onMapReady,
@@ -349,33 +379,49 @@ const MapScene = memo(
     },
     ref,
   ) {
+    const commonMapProps = {
+      style: styles.map,
+      mapType,
+      region: scenario.region,
+      clusteringEnabled: scenario.advanced?.clusteringEnabled,
+      showsUserLocation: scenario.advanced?.showsUserLocation,
+      followsUserLocation: scenario.advanced?.followsUserLocation,
+      showsCompass: scenario.advanced?.showsCompass,
+      customMapStyle: scenario.advanced?.customMapStyle,
+      mapPadding,
+      markers: scenario.markers,
+      polylines: scenario.polylines,
+      polygons: scenario.polygons,
+      circles: scenario.circles,
+      onMapReady,
+      onClusterPress,
+      onMarkerPress,
+      onMarkerDragEnd,
+      onPress,
+      onLongPress,
+      onPolylinePress: onOverlayPress,
+      onPolygonPress: onOverlayPress,
+      onCirclePress: onOverlayPress,
+    };
+
+    if (provider === 'apple') {
+      return (
+        <MapView
+          ref={ref}
+          key={scenario.id}
+          {...commonMapProps}
+          provider="apple"
+          showsScale={scenario.advanced?.showsScale}
+        />
+      );
+    }
+
     return (
       <MapView
         ref={ref}
         key={scenario.id}
-        style={styles.map}
-        mapType={mapType}
-        region={scenario.region}
-        clusteringEnabled={scenario.advanced?.clusteringEnabled}
-        showsUserLocation={scenario.advanced?.showsUserLocation}
-        followsUserLocation={scenario.advanced?.followsUserLocation}
-        showsCompass={scenario.advanced?.showsCompass}
-        showsScale={scenario.advanced?.showsScale}
-        customMapStyle={scenario.advanced?.customMapStyle}
-        mapPadding={mapPadding}
-        markers={scenario.markers}
-        polylines={scenario.polylines}
-        polygons={scenario.polygons}
-        circles={scenario.circles}
-        onMapReady={onMapReady}
-        onClusterPress={onClusterPress}
-        onMarkerPress={onMarkerPress}
-        onMarkerDragEnd={onMarkerDragEnd}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        onPolylinePress={onOverlayPress}
-        onPolygonPress={onOverlayPress}
-        onCirclePress={onOverlayPress}
+        {...commonMapProps}
+        provider="google"
       />
     );
   }),
@@ -449,11 +495,13 @@ export default function App() {
   const mapRef = useRef<MapViewRef>(null);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [mapTypeIndex, setMapTypeIndex] = useState(0);
+  const [providerIndex, setProviderIndex] = useState(0);
   const [status, setStatus] = useState('Waiting for map...');
   const [mapReady, setMapReady] = useState(false);
   const [dockExpanded, setDockExpanded] = useState(false);
 
   const scenario = MAP_SCENARIOS[scenarioIndex];
+  const provider = SUPPORTED_MAP_PROVIDERS[providerIndex] ?? 'google';
   const showsScale = scenario.advanced?.showsScale === true;
   const showsCompass = scenario.advanced?.showsCompass === true;
   const mapPadding = useMemo(
@@ -491,6 +539,20 @@ export default function App() {
   const cycleMapType = useCallback(() => {
     setMapTypeIndex((current) => (current + 1) % MAP_TYPES.length);
   }, []);
+
+  const cycleProvider = useCallback(() => {
+    setProviderIndex((current) => {
+      if (SUPPORTED_MAP_PROVIDERS.length <= 1) {
+        setStatus(PROVIDER_LABELS[provider]);
+        return current;
+      }
+
+      const next = (current + 1) % SUPPORTED_MAP_PROVIDERS.length;
+      setMapReady(false);
+      setStatus(PROVIDER_LABELS[SUPPORTED_MAP_PROVIDERS[next] ?? provider]);
+      return next;
+    });
+  }, [provider]);
 
   const selectScenario = useCallback((index: number) => {
     if (index === scenarioIndex) {
@@ -561,6 +623,7 @@ export default function App() {
       <MapScene
         ref={mapRef}
         scenario={scenario}
+        provider={provider}
         mapType={MAP_TYPES[mapTypeIndex]}
         mapPadding={mapPadding}
         onMapReady={handleMapReady}
@@ -584,11 +647,13 @@ export default function App() {
         scenarioIndex={scenarioIndex}
         expanded={dockExpanded}
         mapTypeLabel={MAP_TYPES[mapTypeIndex]}
+        providerLabel={PROVIDER_LABELS[provider]}
         onToggleExpanded={toggleDockExpanded}
         onSelect={selectScenario}
         onAnimateCamera={handleAnimateCamera}
         onGetCamera={handleGetCamera}
         onCycleMapType={cycleMapType}
+        onCycleProvider={cycleProvider}
       />
       <StatusBar style="light" />
     </View>

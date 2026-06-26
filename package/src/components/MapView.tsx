@@ -4,6 +4,7 @@ import { useCollectedOverlays } from '../hooks/useCollectedOverlays';
 import { NativeMapView } from '../native/MapViewNative';
 import type { MapView as NativeMapViewHybrid } from '../native/specs/MapView.nitro';
 import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
+import { resolveMapProvider } from '../providers';
 import type { Coordinate } from '../types/coordinate';
 import type { MapViewProps } from '../types/map';
 import type { MapViewRef } from '../types/ref';
@@ -12,6 +13,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
   {
     style,
     children,
+    provider,
     region,
     camera,
     mapType = 'standard',
@@ -44,6 +46,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
   },
   ref,
 ) {
+  const resolvedProvider = resolveMapProvider(provider);
   const hybridRef = useRef<NativeMapViewHybrid>(null);
   const {
     markers: collectedMarkers,
@@ -148,10 +151,12 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   return (
     <NativeMapView
+      key={resolvedProvider}
       style={style}
       hybridRef={callback((nativeRef) => {
         hybridRef.current = nativeRef;
       })}
+      provider={resolvedProvider}
       mapType={mapType}
       region={region}
       camera={camera}

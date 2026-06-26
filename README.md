@@ -2,13 +2,13 @@
 
 High-performance maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
-> **Status: Work in Progress** — This library is in early development. The public API is defined but native map rendering is not yet implemented. Components render placeholders.
+> **Status: Work in Progress** — Native rendering exists for the default providers: Apple MapKit on iOS and Google Maps SDK on Android. Additional providers are planned.
 
 ## Goals
 
 - **Performance first** — Leverage Nitro Modules and JSI for zero-bridge map interactions.
 - **New Architecture native** — Built exclusively for React Native's New Architecture (Fabric + TurboModules).
-- **Cross-platform** — MapKit on iOS, Google Maps on Android, with a unified TypeScript API.
+- **Cross-platform** — Apple MapKit on iOS and Google Maps SDK on Android by default, with a unified TypeScript API.
 - **Developer experience** — Familiar component API inspired by `react-native-maps`, with full TypeScript support.
 - **Tree-shakeable** — ESM-only build with proper `exports` map for optimal bundle size.
 
@@ -69,54 +69,109 @@ function ControlledMap() {
 }
 ```
 
+### Map providers
+
+`MapView` accepts an optional `provider` prop:
+
+```tsx
+import { Platform } from 'react-native';
+import { MapView, type MapProvider } from 'react-native-nitro-maps';
+
+const provider: MapProvider = Platform.OS === 'android' ? 'google' : 'apple';
+
+export function ProviderMap() {
+  return <MapView provider={provider} style={{ flex: 1 }} />;
+}
+```
+
+When `provider` is omitted, defaults stay backward-compatible:
+
+| Platform | Default provider |
+| -------- | ---------------- |
+| iOS      | `apple`          |
+| Android  | `google`         |
+
+Current provider availability:
+
+| Provider        | iOS       | Android     | Notes                           |
+| --------------- | --------- | ----------- | ------------------------------- |
+| `apple`         | Supported | Unsupported | Apple MapKit                    |
+| `google`        | Planned   | Supported   | Google Maps SDK                 |
+| `openstreetmap` | Planned   | Planned     | No rendering implementation yet |
+| `mapbox`        | Planned   | Planned     | No rendering implementation yet |
+
+Unsupported explicit providers throw before a native map view is created. Changing `provider` remounts the native map view, so controlled props such as `region`, `camera`, overlays, and callbacks should be supplied again through React props.
+
+Provider-specific TypeScript props are exposed through `MapViewPropsForProvider<P>`. For example, `showsScale` is accepted for `apple` but rejected for `google` because Google Maps SDK has no native scale control.
+
+### Capability matrix
+
+| Capability           | `apple` iOS                                                 | `google` Android                           | Future providers     |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------ | -------------------- |
+| Region / camera      | Supported                                                   | Supported                                  | Planned              |
+| Camera animation     | Supported                                                   | Supported                                  | Planned              |
+| Visible region       | Supported                                                   | Supported                                  | Planned              |
+| Fit to coordinates   | Supported                                                   | Supported                                  | Planned              |
+| Map types            | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Planned              |
+| Gestures             | Supported                                                   | Supported                                  | Planned              |
+| User location        | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Planned              |
+| Compass              | Supported                                                   | Supported                                  | Planned              |
+| Scale control        | Supported                                                   | Unsupported                                | Planned per provider |
+| Markers / overlays   | Supported                                                   | Supported                                  | Planned              |
+| Overlay press events | Supported                                                   | Supported                                  | Planned              |
+| Clustering           | Supported                                                   | Supported                                  | Planned per provider |
+| Custom styles        | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Planned per provider |
+
 ## Public API
 
 ### Components
 
-| Component | Description |
-| --- | --- |
-| `MapView` | Root map container |
-| `Marker` | Point annotation |
-| `Polyline` | Line overlay |
-| `Polygon` | Filled area overlay |
-| `Circle` | Circular area overlay |
+| Component  | Description           |
+| ---------- | --------------------- |
+| `MapView`  | Root map container    |
+| `Marker`   | Point annotation      |
+| `Polyline` | Line overlay          |
+| `Polygon`  | Filled area overlay   |
+| `Circle`   | Circular area overlay |
 
 ### Types
 
-| Type | Description |
-| --- | --- |
-| `Coordinate` | `{ latitude, longitude }` |
-| `Region` | Center + span |
-| `Camera` | Position, zoom, heading, pitch |
-| `MapType` | `'standard' \| 'satellite' \| 'hybrid' \| 'terrain'` |
-| `MapViewRef` | Imperative handle for camera control |
-| `MapViewProps` | Props for `MapView` |
-| `MarkerProps` | Props for `Marker` |
-| `PolylineProps` | Props for `Polyline` |
-| `PolygonProps` | Props for `Polygon` |
-| `CircleProps` | Props for `Circle` |
+| Type                      | Description                                          |
+| ------------------------- | ---------------------------------------------------- |
+| `Coordinate`              | `{ latitude, longitude }`                            |
+| `Region`                  | Center + span                                        |
+| `Camera`                  | Position, zoom, heading, pitch                       |
+| `MapType`                 | `'standard' \| 'satellite' \| 'hybrid' \| 'terrain'` |
+| `MapProvider`             | `'apple' \| 'google' \| 'openstreetmap' \| 'mapbox'` |
+| `MapViewRef`              | Imperative handle for camera control                 |
+| `MapViewProps`            | Props for `MapView`                                  |
+| `MapViewPropsForProvider` | Provider-specific `MapView` props                    |
+| `MarkerProps`             | Props for `Marker`                                   |
+| `PolylineProps`           | Props for `Polyline`                                 |
+| `PolygonProps`            | Props for `Polygon`                                  |
+| `CircleProps`             | Props for `Circle`                                   |
 
 ### Utilities
 
-| Function | Description |
-| --- | --- |
+| Function                                            | Description                         |
+| --------------------------------------------------- | ----------------------------------- |
 | `regionFromCoordinate(coord, latDelta?, lonDelta?)` | Create a `Region` from a coordinate |
-| `distanceBetween(a, b)` | Haversine distance in meters |
+| `distanceBetween(a, b)`                             | Haversine distance in meters        |
 
 ## Roadmap
 
 See [docs/roadmap.md](docs/roadmap.md) for the full development plan.
 
-| Phase | Status | Description |
-| --- | --- | --- |
-| 1. Skeleton | In progress | Project structure, types, placeholder components |
-| 2. Nitro View | Planned | Nitrogen codegen, native MapView HybridView |
-| 3. MapKit (iOS) | Planned | Apple MapKit integration |
-| 4. Google Maps (Android) | Planned | Google Maps SDK integration |
-| 5. Overlays | Planned | Markers, polylines, polygons, circles |
-| 6. Events & gestures | Planned | Press, long-press, region change |
-| 7. Clustering | Planned | Marker clustering |
-| 8. Polish & release | Planned | Performance, docs, v1.0 |
+| Phase                    | Status      | Description                                      |
+| ------------------------ | ----------- | ------------------------------------------------ |
+| 1. Skeleton              | In progress | Project structure, types, placeholder components |
+| 2. Nitro View            | Planned     | Nitrogen codegen, native MapView HybridView      |
+| 3. MapKit (iOS)          | Planned     | Apple MapKit integration                         |
+| 4. Google Maps (Android) | Planned     | Google Maps SDK integration                      |
+| 5. Overlays              | Planned     | Markers, polylines, polygons, circles            |
+| 6. Events & gestures     | Planned     | Press, long-press, region change                 |
+| 7. Clustering            | Planned     | Marker clustering                                |
+| 8. Polish & release      | Planned     | Performance, docs, v1.0                          |
 
 ## Planned features
 
