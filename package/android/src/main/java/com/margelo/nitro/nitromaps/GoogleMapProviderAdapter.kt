@@ -43,13 +43,13 @@ class GoogleMapProviderAdapter(
   private var pendingCircles: Array<CircleDescriptor>? = null
   private val mainHandler = Handler(Looper.getMainLooper())
 
-  private val googleMapIdAtCreation: String? = initialGoogleMapId
+  private val googleMapIdAtCreation: String? = normalizeGoogleMapId(initialGoogleMapId)
 
   override val view: MapView = MapView(
     context,
     GoogleMapOptions().apply {
-      if (!initialGoogleMapId.isNullOrBlank()) {
-        mapId(initialGoogleMapId)
+      googleMapIdAtCreation?.let { mapId ->
+        mapId(mapId)
       }
     },
   ).also { mapView ->
@@ -172,7 +172,7 @@ class GoogleMapProviderAdapter(
   override var googleMapId: String?
     get() = googleMapIdAtCreation
     set(value) {
-      check(value == googleMapIdAtCreation) {
+      check(normalizeGoogleMapId(value) == googleMapIdAtCreation) {
         "googleMapId is applied when the Google MapView is created. Recreate the adapter to change it."
       }
     }
@@ -756,3 +756,5 @@ class GoogleMapProviderAdapter(
     isDestroyed = true
   }
 }
+
+private fun normalizeGoogleMapId(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
