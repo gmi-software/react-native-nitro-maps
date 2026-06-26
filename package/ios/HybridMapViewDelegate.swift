@@ -74,6 +74,7 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
     parent?.stopLiveClustering()
     parent?.notifyRegionChange(complete: true)
+    parent?.endProgrammaticRegionChangeIfNeeded()
   }
 
   func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {

@@ -7,11 +7,17 @@ const packageDir = join(scriptDir, '..');
 
 function replaceOnce(filePath, from, to) {
   const source = readFileSync(filePath, 'utf8');
-  if (!source.includes(from)) {
-    if (source.includes(to)) {
-      return;
-    }
-    throw new Error(`Expected generated code was not found in ${filePath}`);
+  const fromCount = source.split(from).length - 1;
+  const toCount = source.split(to).length - 1;
+
+  if (fromCount === 0 && toCount === 1) {
+    return;
+  }
+
+  if (fromCount !== 1) {
+    throw new Error(
+      `Expected exactly one patch target in ${filePath}, found ${fromCount}`,
+    );
   }
 
   writeFileSync(filePath, source.replace(from, to));

@@ -231,6 +231,7 @@ type ScenarioDockProps = {
   expanded: boolean;
   mapTypeLabel: MapType;
   providerLabel: string;
+  canCycleProvider: boolean;
   onToggleExpanded: () => void;
   onSelect: (index: number) => void;
   onAnimateCamera: () => void;
@@ -245,6 +246,7 @@ const ScenarioDock = memo(function ScenarioDock({
   expanded,
   mapTypeLabel,
   providerLabel,
+  canCycleProvider,
   onToggleExpanded,
   onSelect,
   onAnimateCamera,
@@ -313,10 +315,12 @@ const ScenarioDock = memo(function ScenarioDock({
                 {MAP_TYPE_LABELS[mapTypeLabel]}
               </Text>
             </ScalePressable>
-            <ScalePressable onPress={onCycleProvider} style={styles.actionButton}>
-              <Text style={styles.actionButtonIcon}>⌁</Text>
-              <Text style={styles.actionButtonText}>{providerLabel}</Text>
-            </ScalePressable>
+            {canCycleProvider ? (
+              <ScalePressable onPress={onCycleProvider} style={styles.actionButton}>
+                <Text style={styles.actionButtonIcon}>⌁</Text>
+                <Text style={styles.actionButtonText}>{providerLabel}</Text>
+              </ScalePressable>
+            ) : null}
           </View>
         </Animated.View>
       ) : null}
@@ -648,6 +652,7 @@ export default function App() {
         expanded={dockExpanded}
         mapTypeLabel={MAP_TYPES[mapTypeIndex]}
         providerLabel={PROVIDER_LABELS[provider]}
+        canCycleProvider={SUPPORTED_MAP_PROVIDERS.length > 1}
         onToggleExpanded={toggleDockExpanded}
         onSelect={selectScenario}
         onAnimateCamera={handleAnimateCamera}
