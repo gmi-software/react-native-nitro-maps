@@ -1,3 +1,5 @@
+import type { OverlayComponentType } from '../overlays/overlayType';
+import { OverlayType } from '../overlays/overlayType';
 import type { PolygonProps } from '../types/overlays';
 
 /**
@@ -9,3 +11,5 @@ import type { PolygonProps } from '../types/overlays';
 export function Polygon(_props: PolygonProps): null {
   return null;
 }
+
+(Polygon as OverlayComponentType).overlayType = OverlayType.Polygon;

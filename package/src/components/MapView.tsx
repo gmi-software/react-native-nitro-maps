@@ -25,59 +25,104 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     customMapStyle,
     clusteringEnabled,
     mapPadding,
+    markers: markersProp,
+    polylines: polylinesProp,
+    polygons: polygonsProp,
+    circles: circlesProp,
     onRegionChange,
     onRegionChangeComplete,
     onMapReady,
     onPress,
     onLongPress,
     onClusterPress,
+    onMarkerPress: onMarkerPressProp,
+    onMarkerDragEnd: onMarkerDragEndProp,
+    onPolylinePress: onPolylinePressProp,
+    onPolygonPress: onPolygonPressProp,
+    onCirclePress: onCirclePressProp,
   },
   ref,
 ) {
   const hybridRef = useRef<NativeMapViewHybrid>(null);
   const {
-    markers,
-    polylines,
-    polygons,
-    circles,
+    markers: collectedMarkers,
+    polylines: collectedPolylines,
+    polygons: collectedPolygons,
+    circles: collectedCircles,
     callbackRegistry,
-    hasMarkerPress,
-    hasMarkerDragEnd,
+    hasMarkerPress: hasCollectedMarkerPress,
+    hasMarkerDragEnd: hasCollectedMarkerDragEnd,
     hasPolylinePress,
     hasPolygonPress,
     hasCirclePress,
   } = useCollectedOverlays(children);
 
-  const handleMarkerPress = useCallback((id: string) => {
-    callbackRegistry.current.get(id)?.onPress?.();
-  }, [callbackRegistry]);
+  const markers =
+    markersProp != null && markersProp.length > 0
+      ? markersProp
+      : collectedMarkers;
+  const polylines =
+    polylinesProp != null && polylinesProp.length > 0
+      ? polylinesProp
+      : collectedPolylines;
+  const polygons =
+    polygonsProp != null && polygonsProp.length > 0
+      ? polygonsProp
+      : collectedPolygons;
+  const circles =
+    circlesProp != null && circlesProp.length > 0
+      ? circlesProp
+      : collectedCircles;
+
+  const hasMarkerPress =
+    onMarkerPressProp != null || hasCollectedMarkerPress;
+  const hasMarkerDragEnd =
+    onMarkerDragEndProp != null || hasCollectedMarkerDragEnd;
+  const hasPolylinePressHandler =
+    onPolylinePressProp != null || hasPolylinePress;
+  const hasPolygonPressHandler =
+    onPolygonPressProp != null || hasPolygonPress;
+  const hasCirclePressHandler =
+    onCirclePressProp != null || hasCirclePress;
+
+  const handleMarkerPress = useCallback(
+    (id: string) => {
+      callbackRegistry.current.get(id)?.onPress?.();
+      onMarkerPressProp?.(id);
+    },
+    [callbackRegistry, onMarkerPressProp],
+  );
 
   const handleMarkerDragEnd = useCallback(
     (id: string, coordinate: Coordinate) => {
       callbackRegistry.current.get(id)?.onDragEnd?.(coordinate);
+      onMarkerDragEndProp?.(id, coordinate);
     },
-    [callbackRegistry],
+    [callbackRegistry, onMarkerDragEndProp],
   );
 
   const handlePolylinePress = useCallback(
     (id: string) => {
       callbackRegistry.current.get(id)?.onPress?.();
+      onPolylinePressProp?.(id);
     },
-    [callbackRegistry],
+    [callbackRegistry, onPolylinePressProp],
   );
 
   const handlePolygonPress = useCallback(
     (id: string) => {
       callbackRegistry.current.get(id)?.onPress?.();
+      onPolygonPressProp?.(id);
     },
-    [callbackRegistry],
+    [callbackRegistry, onPolygonPressProp],
   );
 
   const handleCirclePress = useCallback(
     (id: string) => {
       callbackRegistry.current.get(id)?.onPress?.();
+      onCirclePressProp?.(id);
     },
-    [callbackRegistry],
+    [callbackRegistry, onCirclePressProp],
   );
 
   useImperativeHandle(
@@ -153,13 +198,13 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
         hasMarkerDragEnd ? callback(handleMarkerDragEnd) : undefined
       }
       onPolylinePress={
-        hasPolylinePress ? callback(handlePolylinePress) : undefined
+        hasPolylinePressHandler ? callback(handlePolylinePress) : undefined
       }
       onPolygonPress={
-        hasPolygonPress ? callback(handlePolygonPress) : undefined
+        hasPolygonPressHandler ? callback(handlePolygonPress) : undefined
       }
       onCirclePress={
-        hasCirclePress ? callback(handleCirclePress) : undefined
+        hasCirclePressHandler ? callback(handleCirclePress) : undefined
       }
     />
   );

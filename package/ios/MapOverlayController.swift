@@ -18,50 +18,246 @@ final class MapOverlayController {
     let tappable: Bool
   }
 
+  /// Datasets at or below this size (non-clustered) reconcile synchronously on
+  /// the main thread; everything else offloads compute to `computeQueue`.
+  private static let asyncThreshold = 500
+
   private weak var mapView: MKMapView?
-  private var markerAnnotations: [String: MapMarkerAnnotation] = [:]
+  /// All currently shown annotations (singles and clusters), keyed by diff key.
+  private var displayedAnnotations: [String: MKAnnotation] = [:]
+  private var allMarkerDescriptors: [MarkerDescriptor] = []
+  private var spatialIndex: MarkerSpatialIndex?
   private var shapeOverlays: [String: MKOverlay] = [:]
   private var overlayStyles: [ObjectIdentifier: OverlayStyle] = [:]
+  private var viewportRefreshWorkItem: DispatchWorkItem?
+  private var markersFingerprint: Int = 0
+  private var refreshGeneration: Int = 0
+  private var clusteringEnabled = false
+  private let computeQueue = DispatchQueue(
+    label: "com.nitromaps.markerCompute",
+    qos: .userInitiated
+  )
 
   init(mapView: MKMapView) {
     self.mapView = mapView
   }
 
-  func reset() {
-    guard let mapView else {
-      return
-    }
-
-    mapView.removeAnnotations(Array(markerAnnotations.values))
-    mapView.removeOverlays(Array(shapeOverlays.values))
-    markerAnnotations.removeAll()
-    shapeOverlays.removeAll()
-    overlayStyles.removeAll()
+  /// Whether markers are driven by the background viewport pipeline (clustering
+  /// or large LOD) rather than the synchronous small-dataset path.
+  private var usesViewportPipeline: Bool {
+    clusteringEnabled || allMarkerDescriptors.count > Self.asyncThreshold
   }
 
-  func updateMarkers(_ descriptors: [MarkerDescriptor]?) {
+  func setClusteringEnabled(_ enabled: Bool) {
+    guard clusteringEnabled != enabled else {
+      return
+    }
+
+    clusteringEnabled = enabled
+    reapplyMarkers()
+  }
+
+  func reset() {
+    viewportRefreshWorkItem?.cancel()
+    viewportRefreshWorkItem = nil
+    refreshGeneration += 1
     guard let mapView else {
       return
     }
 
-    let nextDescriptors = descriptors ?? []
-    let nextIds = Set(nextDescriptors.map(\.id))
-    let existingIds = Set(markerAnnotations.keys)
+    mapView.removeAnnotations(Array(displayedAnnotations.values))
+    mapView.removeOverlays(Array(shapeOverlays.values))
+    displayedAnnotations.removeAll()
+    allMarkerDescriptors.removeAll()
+    spatialIndex = nil
+    shapeOverlays.removeAll()
+    overlayStyles.removeAll()
+    markersFingerprint = 0
+  }
 
-    for removedId in existingIds.subtracting(nextIds) {
-      if let annotation = markerAnnotations.removeValue(forKey: removedId) {
-        mapView.removeAnnotation(annotation)
+  func setMarkers(_ descriptors: [MarkerDescriptor]?) {
+    let next = descriptors ?? []
+    let fingerprint = MarkerViewportFilter.markersFingerprint(next)
+    guard fingerprint != markersFingerprint else {
+      return
+    }
+
+    markersFingerprint = fingerprint
+    allMarkerDescriptors = next
+    spatialIndex = nil
+    reapplyMarkers()
+  }
+
+  private func reapplyMarkers() {
+    if usesViewportPipeline {
+      rebuildIndexAndRefresh()
+    } else {
+      reconcileMarkersSync(allMarkerDescriptors)
+    }
+  }
+
+  /// Immediate (non-debounced) refresh used for live updates during gestures.
+  func refreshNow() {
+    guard usesViewportPipeline else {
+      return
+    }
+    refreshViewportMarkers()
+  }
+
+  /// Debounced viewport refresh for clustered / large datasets.
+  func scheduleViewportRefresh(immediate: Bool = false) {
+    guard usesViewportPipeline else {
+      return
+    }
+
+    viewportRefreshWorkItem?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      self?.refreshViewportMarkers()
+    }
+    viewportRefreshWorkItem = work
+
+    if immediate {
+      work.perform()
+    } else {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
+    }
+  }
+
+  private func rebuildIndexAndRefresh() {
+    let descriptors = allMarkerDescriptors
+    refreshGeneration += 1
+    let generation = refreshGeneration
+
+    computeQueue.async { [weak self] in
+      let index = MarkerSpatialIndex(markers: descriptors)
+      DispatchQueue.main.async {
+        guard let self, generation == self.refreshGeneration else {
+          return
+        }
+        self.spatialIndex = index
+        self.refreshViewportMarkers()
+      }
+    }
+  }
+
+  private func refreshViewportMarkers() {
+    guard let mapView, let index = spatialIndex else {
+      return
+    }
+
+    let region = mapView.region
+    let viewSize = mapView.bounds.size
+    let displayed = Set(displayedAnnotations.keys)
+    let clustering = clusteringEnabled
+    refreshGeneration += 1
+    let generation = refreshGeneration
+
+    computeQueue.async { [weak self] in
+      let candidates = index.candidates(in: region)
+      let elements: [MarkerClusterEngine.Element]
+      if clustering {
+        elements = MarkerClusterEngine.clusters(
+          candidates: candidates,
+          region: region,
+          viewSize: viewSize
+        )
+      } else {
+        elements = MarkerViewportFilter
+          .displaySubset(candidates: candidates, region: region)
+          .map { .single($0) }
+      }
+
+      let diff = Self.computeDiff(target: elements, displayed: displayed)
+      DispatchQueue.main.async {
+        guard let self, generation == self.refreshGeneration else {
+          return
+        }
+        self.applyDiff(diff)
+      }
+    }
+  }
+
+  private struct MarkerDiff {
+    let removedKeys: Set<String>
+    let added: [(key: String, annotation: MKAnnotation)]
+  }
+
+  private static func computeDiff(
+    target: [MarkerClusterEngine.Element],
+    displayed: Set<String>
+  ) -> MarkerDiff {
+    var nextKeys = Set<String>()
+    nextKeys.reserveCapacity(target.count)
+    var added: [(key: String, annotation: MKAnnotation)] = []
+
+    for element in target {
+      let key = element.diffKey
+      guard nextKeys.insert(key).inserted else {
+        continue
+      }
+      if !displayed.contains(key) {
+        added.append((key, element.makeAnnotation()))
       }
     }
 
-    for descriptor in nextDescriptors {
-      if let existing = markerAnnotations[descriptor.id] {
+    return MarkerDiff(
+      removedKeys: displayed.subtracting(nextKeys),
+      added: added
+    )
+  }
+
+  private func applyDiff(_ diff: MarkerDiff) {
+    guard let mapView else {
+      return
+    }
+
+    if !diff.removedKeys.isEmpty {
+      let removed = diff.removedKeys.compactMap { displayedAnnotations.removeValue(forKey: $0) }
+      mapView.removeAnnotations(removed)
+    }
+
+    if !diff.added.isEmpty {
+      var annotations: [MKAnnotation] = []
+      annotations.reserveCapacity(diff.added.count)
+      for entry in diff.added {
+        displayedAnnotations[entry.key] = entry.annotation
+        annotations.append(entry.annotation)
+      }
+      mapView.addAnnotations(annotations)
+    }
+  }
+
+  /// Synchronous reconcile for small, non-clustered datasets, including per-id
+  /// coordinate updates for dynamic markers.
+  private func reconcileMarkersSync(_ descriptors: [MarkerDescriptor]) {
+    guard let mapView else {
+      return
+    }
+
+    var nextKeys = Set<String>()
+    nextKeys.reserveCapacity(descriptors.count)
+    var addedAnnotations: [MKAnnotation] = []
+
+    for descriptor in descriptors {
+      let key = "s:" + descriptor.id
+      nextKeys.insert(key)
+      if let existing = displayedAnnotations[key] as? MapMarkerAnnotation {
         existing.update(from: descriptor)
       } else {
         let annotation = MapMarkerAnnotation(descriptor: descriptor)
-        markerAnnotations[descriptor.id] = annotation
-        mapView.addAnnotation(annotation)
+        displayedAnnotations[key] = annotation
+        addedAnnotations.append(annotation)
       }
+    }
+
+    let removedKeys = Set(displayedAnnotations.keys).subtracting(nextKeys)
+    if !removedKeys.isEmpty {
+      let removed = removedKeys.compactMap { displayedAnnotations.removeValue(forKey: $0) }
+      mapView.removeAnnotations(removed)
+    }
+
+    if !addedAnnotations.isEmpty {
+      mapView.addAnnotations(addedAnnotations)
     }
   }
 
@@ -119,18 +315,6 @@ final class MapOverlayController {
         )
       }
     )
-  }
-
-  func markerId(for annotation: MKAnnotation) -> String? {
-    (annotation as? MapMarkerAnnotation)?.id
-  }
-
-  func markerAnnotation(for id: String) -> MapMarkerAnnotation? {
-    markerAnnotations[id]
-  }
-
-  func allMarkerAnnotations() -> [MapMarkerAnnotation] {
-    Array(markerAnnotations.values)
   }
 
   func renderer(for overlay: MKOverlay) -> MKOverlayRenderer? {

@@ -1,3 +1,5 @@
+import type { OverlayComponentType } from '../overlays/overlayType';
+import { OverlayType } from '../overlays/overlayType';
 import type { CircleProps } from '../types/overlays';
 
 /**
@@ -9,3 +11,5 @@ import type { CircleProps } from '../types/overlays';
 export function Circle(_props: CircleProps): null {
   return null;
 }
+
+(Circle as OverlayComponentType).overlayType = OverlayType.Circle;

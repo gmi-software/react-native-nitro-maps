@@ -160,22 +160,7 @@ class HybridMapView(val context: ThemedReactContext) :
     set(value) {
       _clusteringEnabled = value
       overlayController.setClusteringEnabled(value == true)
-      googleMap?.let { map ->
-        if (value == true) {
-          map.setOnMarkerClickListener { marker ->
-            overlayController.onMarkerClick(marker)
-          }
-        } else {
-          map.setOnMarkerClickListener { marker ->
-            val id = marker.tag as? String
-            if (id != null) {
-              onMarkerPress?.invoke(id)
-            }
-            false
-          }
-        }
-      }
-      overlayController.updateMarkers(_markers)
+      overlayController.setMarkers(_markers)
     }
 
   private var _mapPadding: EdgePadding? = null
@@ -198,7 +183,7 @@ class HybridMapView(val context: ThemedReactContext) :
     set(value) {
       _markers = value
       if (googleMap != null) {
-        overlayController.updateMarkers(value)
+        overlayController.setMarkers(value)
       } else {
         pendingMarkers = value
       }
@@ -366,12 +351,13 @@ class HybridMapView(val context: ThemedReactContext) :
     syncMarkerPressHandlers()
 
     map.setOnCameraMoveListener {
+      overlayController.setViewportSize(view.width, view.height)
+      overlayController.onCameraMove()
       notifyRegionChange(complete = false)
     }
     map.setOnCameraIdleListener {
-      if (_clusteringEnabled == true) {
-        overlayController.onCameraIdle()
-      }
+      overlayController.setViewportSize(view.width, view.height)
+      overlayController.onCameraIdle()
       notifyRegionChange(complete = true)
     }
     map.setOnMapClickListener { latLng ->
@@ -383,18 +369,8 @@ class HybridMapView(val context: ThemedReactContext) :
     map.setOnMapLoadedCallback {
       notifyMapReadyIfNeeded()
     }
-    if (_clusteringEnabled != true) {
-      map.setOnMarkerClickListener { marker ->
-        val id = marker.tag as? String
-        if (id != null) {
-          onMarkerPress?.invoke(id)
-        }
-        false
-      }
-    } else {
-      map.setOnMarkerClickListener { marker ->
-        overlayController.onMarkerClick(marker)
-      }
+    map.setOnMarkerClickListener { marker ->
+      overlayController.onMarkerClick(marker)
     }
     map.setOnMarkerDragListener(
       object : GoogleMap.OnMarkerDragListener {
@@ -403,7 +379,8 @@ class HybridMapView(val context: ThemedReactContext) :
         override fun onMarkerDrag(marker: com.google.android.gms.maps.model.Marker) = Unit
 
         override fun onMarkerDragEnd(marker: com.google.android.gms.maps.model.Marker) {
-          val id = marker.tag as? String ?: return
+          val tag = marker.tag as? String ?: return
+          val id = if (tag.startsWith("s:")) tag.substring(2) else tag
           onMarkerDragEnd?.invoke(
             id,
             Coordinate(
@@ -433,7 +410,8 @@ class HybridMapView(val context: ThemedReactContext) :
       }
     }
 
-    overlayController.updateMarkers(pendingMarkers ?: _markers)
+    overlayController.setViewportSize(view.width, view.height)
+    overlayController.setMarkers(pendingMarkers ?: _markers)
     overlayController.updatePolylines(pendingPolylines ?: _polylines)
     overlayController.updatePolygons(pendingPolygons ?: _polygons)
     overlayController.updateCircles(pendingCircles ?: _circles)

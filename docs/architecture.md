@@ -62,8 +62,8 @@ Map and overlay callbacks are wired through Nitro listeners on the HybridView. C
 
 | Prop / method | Notes |
 | --- | --- |
-| `clusteringEnabled` | Platform-native clustering (MapKit `clusteringIdentifier` on iOS; `ClusterManager` from maps-utils on Android). |
-| `Marker.clusterable` | Opt-out per marker (defaults to `true`). |
+| `clusteringEnabled` | Custom grid-based clustering via `MarkerClusterEngine` on both platforms (viewport-aware, background compute). |
+| `Marker.clusterable` | Opt-out per marker (defaults to `true`). Non-clusterable markers always render individually. |
 | `customMapStyle` | JSON string. Full support on Android via `MapStyleOptions`. iOS 16+ applies a curated subset (POI/transit visibility, elevation) via `MKMapConfiguration`. |
 | `showsUserLocation` / `followsUserLocation` | Toggles the native user-location layer. Host app must request location permission (`NSLocationWhenInUseUsageDescription` on iOS; `ACCESS_FINE_LOCATION` on Android). |
 | `showsCompass` / `showsScale` | Compass on both platforms. Scale is iOS-only (`showsScale` is a no-op on Android). |

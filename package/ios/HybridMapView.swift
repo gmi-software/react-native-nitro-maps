@@ -7,10 +7,11 @@ final class HybridMapView: HybridMapViewSpec {
   private let mapViewDelegate = HybridMapViewDelegate()
   private var isProgrammaticUpdate = false
   private var hasFiredMapReady = false
+  private var liveClusterTimer: Timer?
   fileprivate lazy var overlayController = MapOverlayController(mapView: view)
 
   lazy var view: MKMapView = {
-    let mapView = MKMapView()
+    let mapView = NitroMKMapView()
     mapViewDelegate.parent = self
     mapView.delegate = mapViewDelegate
     mapView.mapType = mapType.toMKMapType()
@@ -22,6 +23,14 @@ final class HybridMapView: HybridMapViewSpec {
     applyControlSettings(to: mapView)
     applyMapPadding(to: mapView)
     applyCustomMapStyle(to: mapView)
+    mapView.register(
+      NitroPinAnnotationView.self,
+      forAnnotationViewWithReuseIdentifier: NitroPinAnnotationView.reuseIdentifier
+    )
+    mapView.register(
+      NitroClusterAnnotationView.self,
+      forAnnotationViewWithReuseIdentifier: NitroClusterAnnotationView.reuseIdentifier
+    )
     mapViewDelegate.installGestureRecognizers(on: mapView)
     return mapView
   }()
@@ -107,7 +116,7 @@ final class HybridMapView: HybridMapViewSpec {
 
   var clusteringEnabled: Bool? {
     didSet {
-      refreshMarkerClustering()
+      overlayController.setClusteringEnabled(clusteringEnabled == true)
     }
   }
 
@@ -125,8 +134,7 @@ final class HybridMapView: HybridMapViewSpec {
 
   var markers: [MarkerDescriptor]? {
     didSet {
-      overlayController.updateMarkers(markers)
-      refreshMarkerClustering()
+      overlayController.setMarkers(markers)
     }
   }
 
@@ -224,14 +232,37 @@ final class HybridMapView: HybridMapViewSpec {
     isProgrammaticUpdate = false
   }
 
-  func markerId(for annotation: MKAnnotation) -> String? {
-    overlayController.markerId(for: annotation)
-  }
-
   // Derived from MKCoordinateRegion (center + span). May differ from Android
   // bounds-derived region when the map is rotated or pitched.
   func currentRegion() -> Region {
     view.region.toRegion()
+  }
+
+  func scheduleMarkerViewportRefresh() {
+    overlayController.scheduleViewportRefresh()
+  }
+
+  func animateToClusterRegion(_ region: MKCoordinateRegion) {
+    view.setRegion(view.regionThatFits(region), animated: true)
+  }
+
+  /// Recomputes clusters live (throttled) while the user is interacting.
+  func startLiveClustering() {
+    guard liveClusterTimer == nil else {
+      return
+    }
+    liveClusterTimer = Timer.scheduledTimer(
+      withTimeInterval: 0.1,
+      repeats: true
+    ) { [weak self] _ in
+      self?.overlayController.refreshNow()
+    }
+  }
+
+  func stopLiveClustering() {
+    liveClusterTimer?.invalidate()
+    liveClusterTimer = nil
+    overlayController.scheduleViewportRefresh(immediate: true)
   }
 
   func notifyRegionChange(complete: Bool) {
@@ -253,6 +284,7 @@ final class HybridMapView: HybridMapViewSpec {
     }
 
     hasFiredMapReady = true
+    overlayController.setMarkers(markers)
     onMapReady?()
   }
 
@@ -349,6 +381,7 @@ final class HybridMapView: HybridMapViewSpec {
   private func applyControlSettings(to mapView: MKMapView) {
     mapView.showsCompass = showsCompass ?? true
     mapView.showsScale = showsScale ?? false
+    mapView.applyScaleAppearance()
   }
 
   private func applyMapPadding(to mapView: MKMapView) {
@@ -359,29 +392,6 @@ final class HybridMapView: HybridMapViewSpec {
   private func applyCustomMapStyle(to mapView: MKMapView) {
     if #available(iOS 16.0, *) {
       CustomMapStyleParser.apply(json: customMapStyle, mapType: mapType, to: mapView)
-    }
-  }
-
-  private func refreshMarkerClustering() {
-    guard clusteringEnabled == true else {
-      for annotation in overlayController.allMarkerAnnotations() {
-        if let view = view.view(for: annotation) {
-          view.clusteringIdentifier = nil
-        }
-      }
-      return
-    }
-
-    for annotation in overlayController.allMarkerAnnotations() {
-      guard let view = view.view(for: annotation) else {
-        continue
-      }
-
-      if annotation.isClusterable {
-        view.clusteringIdentifier = HybridMapViewDelegate.clusteringIdentifier
-      } else {
-        view.clusteringIdentifier = nil
-      }
     }
   }
 }

@@ -2,6 +2,12 @@ import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Camera } from './camera';
 import type { Coordinate } from './coordinate';
+import type {
+  CircleDescriptor,
+  MarkerDescriptor,
+  PolygonDescriptor,
+  PolylineDescriptor,
+} from '../native/specs/overlays';
 import type { EdgePadding, Region } from './region';
 
 /**
@@ -51,6 +57,36 @@ export interface MapViewProps {
 
   /** Padding applied to map edges, in density-independent pixels. */
   mapPadding?: EdgePadding;
+
+  /**
+   * Bulk marker descriptors. Prefer this over {@linkcode Marker} children
+   * when rendering hundreds or thousands of markers.
+   */
+  markers?: MarkerDescriptor[];
+
+  /** Bulk polyline descriptors. */
+  polylines?: PolylineDescriptor[];
+
+  /** Bulk polygon descriptors. */
+  polygons?: PolygonDescriptor[];
+
+  /** Bulk circle descriptors. */
+  circles?: CircleDescriptor[];
+
+  /** Called when any marker is pressed (bulk or child overlays). */
+  onMarkerPress?: (id: string) => void;
+
+  /** Called when any marker drag ends (bulk or child overlays). */
+  onMarkerDragEnd?: (id: string, coordinate: Coordinate) => void;
+
+  /** Called when any polyline is pressed (bulk or child overlays). */
+  onPolylinePress?: (id: string) => void;
+
+  /** Called when any polygon is pressed (bulk or child overlays). */
+  onPolygonPress?: (id: string) => void;
+
+  /** Called when any circle is pressed (bulk or child overlays). */
+  onCirclePress?: (id: string) => void;
 
   /** Called when the map region changes after user interaction. */
   onRegionChange?: (region: Region) => void;
