@@ -4,7 +4,7 @@ Swift implementation of the `MapView` Nitro HybridView backed by Apple MapKit an
 
 ## Structure
 
-```
+```text
 ios/
 ├── HybridMapView.swift                # MapView HybridView host and provider selection
 ├── AppleMapProviderAdapter.swift      # Apple MapKit implementation

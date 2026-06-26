@@ -18,6 +18,10 @@ export const defaultProviderProps: MapViewProps = {
   customMapStyle: '[]',
 };
 
+export const defaultProviderGoogleMapIdProps: MapViewProps = {
+  googleMapId: 'google-map-id',
+};
+
 export const plannedProviderProps: MapViewProps = {
   provider: 'mapbox',
 };

@@ -11,9 +11,17 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   private var isMapReady = false
   private var hasDeliveredMapReady = false
   private var liveClusterTimer: Timer?
+  private var myLocationObservation: NSKeyValueObservation?
+  private weak var followedLocationMapView: GMSMapView?
   private var _googleMapId: String?
 
-  fileprivate lazy var overlayController = GoogleMapOverlayController(mapView: view)
+  fileprivate lazy var overlayController: GoogleMapOverlayController = {
+    let controller = GoogleMapOverlayController(mapView: view)
+    controller.animateToClusterRegion = { [weak self] region in
+      self?.animateToClusterRegion(region)
+    }
+    return controller
+  }()
 
   var contentView: UIView {
     view
@@ -42,15 +50,16 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     applyControlSettings(to: mapView)
     applyMapPadding(to: mapView)
     applyCustomMapStyle(to: mapView)
-    overlayController.animateToClusterRegion = { [weak self] region in
-      self?.animateToClusterRegion(region)
-    }
     return mapView
   }()
 
   init(googleMapId: String?) {
     _googleMapId = googleMapId
     super.init()
+  }
+
+  deinit {
+    stopFollowingUserLocation()
   }
 
   var mapType: MapType = .standard {
@@ -395,12 +404,61 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   }
 
   private func applyUserLocationSettings(to mapView: GMSMapView) {
-    mapView.isMyLocationEnabled = showsUserLocation ?? false
-    if followsUserLocation == true, showsUserLocation == true {
-      mapView.settings.myLocationButton = true
+    let shouldShowUserLocation = showsUserLocation ?? false
+    let shouldFollowUserLocation = followsUserLocation == true && shouldShowUserLocation
+
+    mapView.isMyLocationEnabled = shouldShowUserLocation
+    mapView.settings.myLocationButton = shouldFollowUserLocation
+
+    if shouldFollowUserLocation {
+      startFollowingUserLocation(on: mapView)
+      animateToCurrentUserLocation(on: mapView)
     } else {
-      mapView.settings.myLocationButton = false
+      stopFollowingUserLocation()
     }
+  }
+
+  private func startFollowingUserLocation(on mapView: GMSMapView) {
+    if followedLocationMapView !== mapView {
+      stopFollowingUserLocation()
+    }
+
+    guard myLocationObservation == nil else {
+      return
+    }
+
+    followedLocationMapView = mapView
+    myLocationObservation = mapView.observe(\.myLocation, options: [.new]) { [weak self, weak mapView] _, change in
+      guard let self,
+            self.followsUserLocation == true,
+            self.showsUserLocation == true,
+            let mapView,
+            let location = change.newValue ?? mapView.myLocation else {
+        return
+      }
+
+      self.animateToUserLocation(location, on: mapView)
+    }
+  }
+
+  private func stopFollowingUserLocation() {
+    myLocationObservation?.invalidate()
+    myLocationObservation = nil
+    followedLocationMapView = nil
+  }
+
+  private func animateToCurrentUserLocation(on mapView: GMSMapView) {
+    guard let location = mapView.myLocation else {
+      return
+    }
+
+    animateToUserLocation(location, on: mapView)
+  }
+
+  private func animateToUserLocation(_ location: CLLocation, on mapView: GMSMapView) {
+    let updateID = beginProgrammaticUpdate()
+    mapView.animate(with: GMSCameraUpdate.setTarget(location.coordinate))
+    scheduleProgrammaticUpdateFallback(for: updateID, delay: 0.5)
   }
 
   private func applyControlSettings(to mapView: GMSMapView) {

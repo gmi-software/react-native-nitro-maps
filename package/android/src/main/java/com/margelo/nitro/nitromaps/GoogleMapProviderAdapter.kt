@@ -43,7 +43,7 @@ class GoogleMapProviderAdapter(
   private var pendingCircles: Array<CircleDescriptor>? = null
   private val mainHandler = Handler(Looper.getMainLooper())
 
-  private var _googleMapId: String? = initialGoogleMapId
+  private val googleMapIdAtCreation: String? = initialGoogleMapId
 
   override val view: MapView = MapView(
     context,
@@ -170,9 +170,11 @@ class GoogleMapProviderAdapter(
     }
 
   override var googleMapId: String?
-    get() = _googleMapId
+    get() = googleMapIdAtCreation
     set(value) {
-      _googleMapId = value
+      check(value == googleMapIdAtCreation) {
+        "googleMapId is applied when the Google MapView is created. Recreate the adapter to change it."
+      }
     }
 
   private var _clusteringEnabled: Boolean? = null
@@ -736,7 +738,6 @@ class GoogleMapProviderAdapter(
     _showsCompass = null
     _showsScale = null
     _customMapStyle = null
-    _googleMapId = null
     _clusteringEnabled = null
     _mapPadding = null
     googleMap?.mapType = MapType.STANDARD.toGoogleMapType()

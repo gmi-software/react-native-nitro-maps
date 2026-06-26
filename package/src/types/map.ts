@@ -110,8 +110,8 @@ interface ExistingDefaultProviderProps extends BaseMapViewProps {
    */
   provider?: undefined;
 
-  /** Google Map IDs are only supported by the Google provider. */
-  googleMapId?: never;
+  /** Google Cloud Map ID for Android's default Google Maps provider. */
+  googleMapId?: string;
 
   /** Whether to show the scale control (supported by Apple MapKit). */
   showsScale?: boolean;
