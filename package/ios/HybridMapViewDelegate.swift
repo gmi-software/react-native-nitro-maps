@@ -3,12 +3,7 @@ import UIKit
 
 /// Delegate and gesture handler for `HybridMapView`'s underlying `MKMapView`.
 final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-  static let clusteringIdentifier = "nitro-maps-cluster"
-
   weak var parent: HybridMapView?
-
-  private let markerReuseIdentifier = "NitroMapsMarker"
-  private let clusterReuseIdentifier = "NitroMapsCluster"
 
   func installGestureRecognizers(on mapView: MKMapView) {
     let tapRecognizer = UITapGestureRecognizer(
@@ -72,10 +67,12 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   }
 
   func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+    parent?.startLiveClustering()
     parent?.notifyRegionChange(complete: false)
   }
 
   func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+    parent?.stopLiveClustering()
     parent?.notifyRegionChange(complete: true)
   }
 
@@ -92,15 +89,17 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   }
 
   func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-    if let cluster = annotation as? MKClusterAnnotation {
+    if let cluster = annotation as? MapClusterAnnotation {
       let view = mapView.dequeueReusableAnnotationView(
-        withIdentifier: clusterReuseIdentifier
-      ) as? MKMarkerAnnotationView
-        ?? MKMarkerAnnotationView(annotation: cluster, reuseIdentifier: clusterReuseIdentifier)
+        withIdentifier: NitroClusterAnnotationView.reuseIdentifier
+      ) as? NitroClusterAnnotationView
+        ?? NitroClusterAnnotationView(
+          annotation: cluster,
+          reuseIdentifier: NitroClusterAnnotationView.reuseIdentifier
+        )
 
       view.annotation = cluster
-      view.markerTintColor = .systemBlue
-      view.glyphText = "\(cluster.memberAnnotations.count)"
+      view.configure(count: cluster.count)
       return view
     }
 
@@ -108,44 +107,41 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
       return nil
     }
 
-    let view = mapView.dequeueReusableAnnotationView(
-      withIdentifier: markerReuseIdentifier,
+    let pinView = mapView.dequeueReusableAnnotationView(
+      withIdentifier: NitroPinAnnotationView.reuseIdentifier,
       for: marker
-    ) as? MKMarkerAnnotationView
+    ) as! NitroPinAnnotationView
 
-    let annotationView = view ?? MKMarkerAnnotationView(
-      annotation: marker,
-      reuseIdentifier: markerReuseIdentifier
-    )
-    annotationView.annotation = marker
-    if let markerView = annotationView as? MKMarkerAnnotationView {
-      markerView.canShowCallout = marker.title != nil || marker.subtitle != nil
-      markerView.isDraggable = marker.draggable
-    } else {
-      annotationView.canShowCallout = marker.title != nil || marker.subtitle != nil
-      annotationView.isDraggable = marker.draggable
-    }
-    applyClusteringIdentifier(to: annotationView, marker: marker)
-    return annotationView
+    pinView.configure(for: marker)
+    return pinView
   }
 
-  private func applyClusteringIdentifier(to view: MKAnnotationView, marker: MapMarkerAnnotation) {
-    if parent?.clusteringEnabled == true, marker.isClusterable {
-      view.clusteringIdentifier = Self.clusteringIdentifier
-    } else {
-      view.clusteringIdentifier = nil
+  func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+    for view in views {
+      // MKMarkerAnnotationView handles its own drop animation; only fade in cluster badges.
+      guard view.annotation is MapClusterAnnotation else {
+        continue
+      }
+      view.alpha = 0
+      UIView.animate(
+        withDuration: 0.16,
+        delay: 0,
+        options: [.allowUserInteraction, .beginFromCurrentState, .curveEaseOut]
+      ) {
+        view.alpha = 1
+      }
     }
   }
 
   func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-    if let cluster = view.annotation as? MKClusterAnnotation {
-      let markerIds = cluster.memberAnnotations.compactMap { parent?.markerId(for: $0) }
+    if let cluster = view.annotation as? MapClusterAnnotation {
       let coordinate = cluster.coordinate
       parent?.onClusterPress?(
-        markerIds,
+        cluster.memberIds,
         Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude)
       )
-      mapView.deselectAnnotation(cluster, animated: true)
+      parent?.animateToClusterRegion(cluster.region)
+      mapView.deselectAnnotation(cluster, animated: false)
       return
     }
 
@@ -154,7 +150,9 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
     }
 
     parent?.onMarkerPress?(marker.id)
-    mapView.deselectAnnotation(view.annotation, animated: true)
+    if marker.title == nil && marker.subtitle == nil {
+      mapView.deselectAnnotation(view.annotation, animated: true)
+    }
   }
 
   func mapView(

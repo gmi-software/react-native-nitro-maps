@@ -1,5 +1,5 @@
 import { Children, isValidElement, useMemo, useRef } from 'react';
-import type { MutableRefObject, ReactNode } from 'react';
+import type { MutableRefObject, ReactElement, ReactNode } from 'react';
 import type {
   CircleDescriptor,
   MarkerDescriptor,
@@ -16,6 +16,8 @@ import { Circle } from '../components/Circle';
 import { Marker } from '../components/Marker';
 import { Polygon } from '../components/Polygon';
 import { Polyline } from '../components/Polyline';
+import type { OverlayComponentType, OverlayTypeName } from '../overlays/overlayType';
+import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
 
 interface OverlayCallbacks {
   onPress?: () => void;
@@ -47,132 +49,196 @@ function resolveOverlayId(
   return `${type}-${index}`;
 }
 
+function isOverlayChild(
+  child: ReactElement,
+  overlayType: OverlayTypeName,
+  component: unknown,
+): boolean {
+  if (typeof child.type === 'function' || typeof child.type === 'object') {
+    const childType = child.type as OverlayComponentType;
+    if (childType.overlayType === overlayType) {
+      return true;
+    }
+  }
+
+  return child.type === component;
+}
+
+interface OverlayCollectorState {
+  registry: Map<string, OverlayCallbacks>;
+  markers: MarkerDescriptor[];
+  polylines: PolylineDescriptor[];
+  polygons: PolygonDescriptor[];
+  circles: CircleDescriptor[];
+  markerIndex: number;
+  polylineIndex: number;
+  polygonIndex: number;
+  circleIndex: number;
+  hasMarkerPress: boolean;
+  hasMarkerDragEnd: boolean;
+  hasPolylinePress: boolean;
+  hasPolygonPress: boolean;
+  hasCirclePress: boolean;
+}
+
+interface OverlayCollector {
+  overlayType: OverlayTypeName;
+  component: unknown;
+  collect: (child: ReactElement, state: OverlayCollectorState) => void;
+}
+
+function tappableFromPress(
+  onPress: (() => void) | undefined,
+  tappable: boolean | undefined,
+): boolean | undefined {
+  return onPress != null ? (tappable ?? true) : tappable;
+}
+
+const overlayCollectors: OverlayCollector[] = [
+  {
+    overlayType: OverlayType.Marker,
+    component: Marker,
+    collect: (child, state) => {
+      const props = child.props as MarkerProps;
+      const id = resolveOverlayId(props.id, 'marker', state.markerIndex);
+      state.markerIndex += 1;
+
+      state.markers.push({
+        id,
+        coordinate: props.coordinate,
+        title: props.title,
+        subtitle: props.subtitle,
+        draggable: props.draggable,
+        clusterable: props.clusterable,
+      });
+      state.registry.set(overlayCallbackKey(OverlayType.Marker, id), {
+        onPress: props.onPress,
+        onDragEnd: props.onDragEnd,
+      });
+      if (props.onPress != null) {
+        state.hasMarkerPress = true;
+      }
+      if (props.onDragEnd != null) {
+        state.hasMarkerDragEnd = true;
+      }
+    },
+  },
+  {
+    overlayType: OverlayType.Polyline,
+    component: Polyline,
+    collect: (child, state) => {
+      const props = child.props as PolylineProps;
+      const id = resolveOverlayId(props.id, 'polyline', state.polylineIndex);
+      state.polylineIndex += 1;
+
+      state.polylines.push({
+        id,
+        coordinates: props.coordinates,
+        strokeColor: props.strokeColor,
+        strokeWidth: props.strokeWidth,
+        tappable: tappableFromPress(props.onPress, props.tappable),
+      });
+      state.registry.set(overlayCallbackKey(OverlayType.Polyline, id), { onPress: props.onPress });
+      if (props.onPress != null) {
+        state.hasPolylinePress = true;
+      }
+    },
+  },
+  {
+    overlayType: OverlayType.Polygon,
+    component: Polygon,
+    collect: (child, state) => {
+      const props = child.props as PolygonProps;
+      const id = resolveOverlayId(props.id, 'polygon', state.polygonIndex);
+      state.polygonIndex += 1;
+
+      state.polygons.push({
+        id,
+        coordinates: props.coordinates,
+        fillColor: props.fillColor,
+        strokeColor: props.strokeColor,
+        strokeWidth: props.strokeWidth,
+        tappable: tappableFromPress(props.onPress, props.tappable),
+      });
+      state.registry.set(overlayCallbackKey(OverlayType.Polygon, id), { onPress: props.onPress });
+      if (props.onPress != null) {
+        state.hasPolygonPress = true;
+      }
+    },
+  },
+  {
+    overlayType: OverlayType.Circle,
+    component: Circle,
+    collect: (child, state) => {
+      const props = child.props as CircleProps;
+      const id = resolveOverlayId(props.id, 'circle', state.circleIndex);
+      state.circleIndex += 1;
+
+      state.circles.push({
+        id,
+        center: props.center,
+        radius: props.radius,
+        fillColor: props.fillColor,
+        strokeColor: props.strokeColor,
+        strokeWidth: props.strokeWidth,
+        tappable: tappableFromPress(props.onPress, props.tappable),
+      });
+      state.registry.set(overlayCallbackKey(OverlayType.Circle, id), { onPress: props.onPress });
+      if (props.onPress != null) {
+        state.hasCirclePress = true;
+      }
+    },
+  },
+];
+
 export function useCollectedOverlays(children: ReactNode): CollectedOverlays {
   const callbackRegistry = useRef(new Map<string, OverlayCallbacks>());
 
   const overlays = useMemo(() => {
-    const registry = new Map<string, OverlayCallbacks>();
-    const markers: MarkerDescriptor[] = [];
-    const polylines: PolylineDescriptor[] = [];
-    const polygons: PolygonDescriptor[] = [];
-    const circles: CircleDescriptor[] = [];
-
-    let markerIndex = 0;
-    let polylineIndex = 0;
-    let polygonIndex = 0;
-    let circleIndex = 0;
-    let hasMarkerPress = false;
-    let hasMarkerDragEnd = false;
-    let hasPolylinePress = false;
-    let hasPolygonPress = false;
-    let hasCirclePress = false;
+    const state: OverlayCollectorState = {
+      registry: new Map<string, OverlayCallbacks>(),
+      markers: [],
+      polylines: [],
+      polygons: [],
+      circles: [],
+      markerIndex: 0,
+      polylineIndex: 0,
+      polygonIndex: 0,
+      circleIndex: 0,
+      hasMarkerPress: false,
+      hasMarkerDragEnd: false,
+      hasPolylinePress: false,
+      hasPolygonPress: false,
+      hasCirclePress: false,
+    };
 
     Children.forEach(children, (child) => {
       if (!isValidElement(child)) {
         return;
       }
 
-      if (child.type === Marker) {
-        const props = child.props as MarkerProps;
-        const id = resolveOverlayId(props.id, 'marker', markerIndex);
-        markerIndex += 1;
-
-        markers.push({
-          id,
-          coordinate: props.coordinate,
-          title: props.title,
-          subtitle: props.subtitle,
-          draggable: props.draggable,
-          clusterable: props.clusterable,
-        });
-        registry.set(id, {
-          onPress: props.onPress,
-          onDragEnd: props.onDragEnd,
-        });
-        if (props.onPress != null) {
-          hasMarkerPress = true;
+      for (const collector of overlayCollectors) {
+        if (!isOverlayChild(child, collector.overlayType, collector.component)) {
+          continue;
         }
-        if (props.onDragEnd != null) {
-          hasMarkerDragEnd = true;
-        }
-        return;
-      }
 
-      if (child.type === Polyline) {
-        const props = child.props as PolylineProps;
-        const id = resolveOverlayId(props.id, 'polyline', polylineIndex);
-        polylineIndex += 1;
-
-        polylines.push({
-          id,
-          coordinates: props.coordinates,
-          strokeColor: props.strokeColor,
-          strokeWidth: props.strokeWidth,
-          tappable:
-            props.onPress != null ? (props.tappable ?? true) : props.tappable,
-        });
-        registry.set(id, { onPress: props.onPress });
-        if (props.onPress != null) {
-          hasPolylinePress = true;
-        }
-        return;
-      }
-
-      if (child.type === Polygon) {
-        const props = child.props as PolygonProps;
-        const id = resolveOverlayId(props.id, 'polygon', polygonIndex);
-        polygonIndex += 1;
-
-        polygons.push({
-          id,
-          coordinates: props.coordinates,
-          fillColor: props.fillColor,
-          strokeColor: props.strokeColor,
-          strokeWidth: props.strokeWidth,
-          tappable:
-            props.onPress != null ? (props.tappable ?? true) : props.tappable,
-        });
-        registry.set(id, { onPress: props.onPress });
-        if (props.onPress != null) {
-          hasPolygonPress = true;
-        }
-        return;
-      }
-
-      if (child.type === Circle) {
-        const props = child.props as CircleProps;
-        const id = resolveOverlayId(props.id, 'circle', circleIndex);
-        circleIndex += 1;
-
-        circles.push({
-          id,
-          center: props.center,
-          radius: props.radius,
-          fillColor: props.fillColor,
-          strokeColor: props.strokeColor,
-          strokeWidth: props.strokeWidth,
-          tappable:
-            props.onPress != null ? (props.tappable ?? true) : props.tappable,
-        });
-        registry.set(id, { onPress: props.onPress });
-        if (props.onPress != null) {
-          hasCirclePress = true;
-        }
+        collector.collect(child, state);
+        break;
       }
     });
 
-    callbackRegistry.current = registry;
+    callbackRegistry.current = state.registry;
 
     return {
-      markers,
-      polylines,
-      polygons,
-      circles,
-      hasMarkerPress,
-      hasMarkerDragEnd,
-      hasPolylinePress,
-      hasPolygonPress,
-      hasCirclePress,
+      markers: state.markers,
+      polylines: state.polylines,
+      polygons: state.polygons,
+      circles: state.circles,
+      hasMarkerPress: state.hasMarkerPress,
+      hasMarkerDragEnd: state.hasMarkerDragEnd,
+      hasPolylinePress: state.hasPolylinePress,
+      hasPolygonPress: state.hasPolygonPress,
+      hasCirclePress: state.hasCirclePress,
     };
   }, [children]);
 

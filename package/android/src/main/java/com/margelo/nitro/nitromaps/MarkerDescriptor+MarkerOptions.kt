@@ -1,5 +1,6 @@
 package com.margelo.nitro.nitromaps
 
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 
@@ -9,4 +10,5 @@ fun MarkerDescriptor.toMarkerOptions(): MarkerOptions {
     .title(title)
     .snippet(subtitle)
     .draggable(draggable == true)
+    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
 }

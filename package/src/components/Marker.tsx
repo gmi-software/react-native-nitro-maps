@@ -1,3 +1,5 @@
+import type { OverlayComponentType } from '../overlays/overlayType';
+import { OverlayType } from '../overlays/overlayType';
 import type { MarkerProps } from '../types/overlays';
 
 /**
@@ -9,3 +11,5 @@ import type { MarkerProps } from '../types/overlays';
 export function Marker(_props: MarkerProps): null {
   return null;
 }
+
+(Marker as OverlayComponentType).overlayType = OverlayType.Marker;

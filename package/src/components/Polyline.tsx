@@ -1,3 +1,5 @@
+import type { OverlayComponentType } from '../overlays/overlayType';
+import { OverlayType } from '../overlays/overlayType';
 import type { PolylineProps } from '../types/overlays';
 
 /**
@@ -9,3 +11,5 @@ import type { PolylineProps } from '../types/overlays';
 export function Polyline(_props: PolylineProps): null {
   return null;
 }
+
+(Polyline as OverlayComponentType).overlayType = OverlayType.Polyline;

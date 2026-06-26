@@ -38,6 +38,7 @@ local.properties
 **/ios/build/
 
 # IDE
+.cursor/
 .idea/
 .vscode/
 *.swp

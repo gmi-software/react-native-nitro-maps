@@ -1,11 +1,4 @@
-import type {
-  CircleProps,
-  EdgePadding,
-  MarkerProps,
-  PolygonProps,
-  PolylineProps,
-  Region,
-} from 'react-native-nitro-maps';
+import type { EdgePadding, MapViewProps, Region } from 'react-native-nitro-maps';
 
 export interface MapScenarioAdvancedOptions {
   clusteringEnabled?: boolean;
@@ -23,9 +16,9 @@ export interface MapScenario {
   name: string;
   description: string;
   region: Region;
-  markers?: Omit<MarkerProps, 'onPress' | 'onDragEnd'>[];
-  polylines?: Omit<PolylineProps, 'onPress'>[];
-  polygons?: Omit<PolygonProps, 'onPress'>[];
-  circles?: Omit<CircleProps, 'onPress'>[];
+  markers?: NonNullable<MapViewProps['markers']>;
+  polylines?: NonNullable<MapViewProps['polylines']>;
+  polygons?: NonNullable<MapViewProps['polygons']>;
+  circles?: NonNullable<MapViewProps['circles']>;
   advanced?: MapScenarioAdvancedOptions;
 }

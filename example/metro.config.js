@@ -22,4 +22,11 @@ config.resolver.unstable_conditionNames = [
   'default',
 ];
 
+// Always resolve the workspace package through one entry point so overlay
+// components share the same module instance (required for MapView child collection).
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  'react-native-nitro-maps': path.resolve(monorepoRoot, 'package'),
+};
+
 module.exports = config;
