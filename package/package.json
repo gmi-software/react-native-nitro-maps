@@ -29,7 +29,8 @@
   "scripts": {
     "build": "bob build",
     "typecheck": "tsc --noEmit",
-    "nitrogen": "nitrogen"
+    "typecheck:provider-types": "tsc --noEmit -p tsconfig.type-tests.json",
+    "nitrogen": "nitrogen && bun ./scripts/patch-nitrogen-generated.mjs"
   },
   "keywords": [
     "react-native",

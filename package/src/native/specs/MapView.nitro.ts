@@ -5,7 +5,7 @@ import type {
 } from 'react-native-nitro-modules';
 import type { Camera } from '../../types/camera';
 import type { Coordinate } from '../../types/coordinate';
-import type { MapType } from '../../types/map';
+import type { MapProvider, MapType } from '../../types/map';
 import type { EdgePadding, Region, VisibleRegion } from '../../types/region';
 import type {
   CircleDescriptor,
@@ -20,6 +20,9 @@ import type {
  * @see {@linkcode MapView}
  */
 export interface MapViewProps extends HybridViewProps {
+  /** Native rendering backend for the map view. */
+  provider?: MapProvider;
+
   /**
    * The visual style of the map.
    *

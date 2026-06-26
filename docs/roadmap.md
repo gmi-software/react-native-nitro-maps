@@ -68,6 +68,7 @@ Delivered incrementally during Phases 3–5; polished for platform consistency i
 
 ## Phase 8: Polish and release
 
+- [x] Multi-provider `MapView` architecture
 - [ ] Performance profiling and optimization
 - [ ] Comprehensive documentation site
 - [ ] Migration guide from react-native-maps
@@ -76,8 +77,16 @@ Delivered incrementally during Phases 3–5; polished for platform consistency i
 
 ## Open decisions
 
-| Decision             | Options                                    | Status               |
-| -------------------- | ------------------------------------------ | -------------------- |
-| Overlay architecture | Per-view native vs data-driven descriptors | Data-driven (Option B) |
-| Clustering library   | Custom vs platform-native                  | Platform-native (MKClusterAnnotation / maps-utils) |
-| Offline support      | Tile caching strategy                      | Future consideration |
+| Decision              | Options                                    | Status                                             |
+| --------------------- | ------------------------------------------ | -------------------------------------------------- |
+| Overlay architecture  | Per-view native vs data-driven descriptors | Data-driven (Option B)                             |
+| Clustering library    | Custom vs platform-native                  | Platform-native (MKClusterAnnotation / maps-utils) |
+| Provider architecture | In-place SDK switching vs adapter remount  | Provider adapter + React remount                   |
+| Offline support       | Tile caching strategy                      | Future consideration                               |
+
+## Future provider work
+
+- [ ] Google Maps provider on iOS
+- [ ] OpenStreetMap-backed provider
+- [ ] Mapbox provider
+- [ ] Provider-specific install and configuration docs
