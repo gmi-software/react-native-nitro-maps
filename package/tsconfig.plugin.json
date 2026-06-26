@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": "plugin/src",
+    "outDir": "plugin/build",
+    "noEmit": false,
+    "declaration": true
+  },
+  "include": ["plugin/src/**/*.ts"],
+  "exclude": ["plugin/src/**/*.test.ts"]
+}

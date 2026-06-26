@@ -20,6 +20,41 @@ bun add react-native-nitro-maps react-native-nitro-modules
 
 > Requires React Native 0.78+ with the New Architecture enabled.
 
+### Expo config plugin
+
+For Expo apps (SDK 56+), add the config plugin to `app.json` or `app.config.js`:
+
+```js
+export default {
+  expo: {
+    plugins: [
+      [
+        'react-native-nitro-maps',
+        {
+          googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+          locationPermission:
+            'Allow $(PRODUCT_NAME) to use your location for map features.',
+        },
+      ],
+    ],
+  },
+};
+```
+
+| Option | Platform | Description |
+| --- | --- | --- |
+| `googleMapsApiKey` | Android | Injects `com.google.android.geo.API_KEY` meta-data. Reserved for future iOS Google Maps support ([#2](https://github.com/gmi-software/react-native-nitro-maps/issues/2)); no-op on iOS today (MapKit needs no key). |
+| `locationPermission` | iOS + Android | String sets `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. Pass `false` or omit to skip. |
+| `locationAlwaysPermission` | iOS + Android | String sets `NSLocationAlwaysAndWhenInUseUsageDescription` and adds `ACCESS_BACKGROUND_LOCATION`. Pass `false` or omit to skip. |
+
+After `expo prebuild`, native projects have the required keys and permissions without manual edits.
+
+> **Google Maps API key:** Use either this plugin's `googleMapsApiKey` option or Expo's built-in `android.config.googleMaps.apiKey` — pick one source, not both.
+
+> **EAS Secrets:** Store `GOOGLE_MAPS_API_KEY` as an EAS secret and reference it via `process.env.GOOGLE_MAPS_API_KEY` in `app.config.js`.
+
+See [docs/expo-setup.md](docs/expo-setup.md) for a full Expo SDK 56 setup walkthrough.
+
 ## Usage
 
 ```tsx

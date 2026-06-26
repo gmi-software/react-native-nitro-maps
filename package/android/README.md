@@ -31,6 +31,8 @@ The library does not ship an API key. Host apps must provide one in their `Andro
 
 For the example Expo app, set `GOOGLE_MAPS_API_KEY` (see `example/.env.example`) before running `expo prebuild` or `expo run:android`.
 
+Expo apps can use the built-in config plugin instead of manual manifest edits — see [docs/expo-setup.md](../../docs/expo-setup.md).
+
 ## Getting started
 
 1. Run `bun run nitrogen` from the repo root if you change the Nitro spec.

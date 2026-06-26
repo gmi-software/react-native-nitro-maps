@@ -16,6 +16,8 @@
   "files": [
     "src",
     "lib",
+    "plugin/build",
+    "app.plugin.js",
     "nitrogen",
     "ios",
     "android",
@@ -27,9 +29,15 @@
     "!**/__mocks__"
   ],
   "scripts": {
-    "build": "bob build",
-    "typecheck": "tsc --noEmit",
+    "build": "bob build && bun run build:plugin",
+    "build:plugin": "tsc --project tsconfig.plugin.json",
+    "prepack": "bun run build",
+    "test": "jest",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.plugin.json --noEmit",
     "nitrogen": "nitrogen"
+  },
+  "expo": {
+    "plugin": "./app.plugin.js"
   },
   "keywords": [
     "react-native",
@@ -61,12 +69,16 @@
     "react-native-nitro-modules": ">=0.35.0"
   },
   "devDependencies": {
+    "@expo/config-plugins": "~56.0.0",
+    "@types/jest": "^29.5.14",
     "@types/react": "^19.2.15",
+    "jest": "^29.7.0",
     "nitrogen": "^0.35.9",
     "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-builder-bob": "^0.43.0",
     "react-native-nitro-modules": "^0.35.10",
+    "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   },
   "react-native-builder-bob": {

@@ -9,6 +9,7 @@ dist/
 
 # Build outputs
 package/lib/
+package/plugin/build/
 package/nitrogen/
 
 # Expo
