@@ -389,12 +389,11 @@ class GoogleMapProviderAdapter(
     syncMarkerPressHandlers()
 
     map.setOnCameraMoveListener {
+      overlayController.onCameraMove()
       notifyRegionChange(complete = false)
     }
     map.setOnCameraIdleListener {
-      if (_clusteringEnabled == true) {
-        overlayController.onCameraIdle()
-      }
+      overlayController.onCameraIdle()
       notifyRegionChange(complete = true)
     }
     map.setOnMapClickListener { latLng ->

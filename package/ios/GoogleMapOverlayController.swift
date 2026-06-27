@@ -3,28 +3,21 @@ import MapKit
 import UIKit
 
 final class GoogleMapOverlayController {
+  private static let clusterCellPoints: Double = 96
+
   private enum MarkerPayload {
     case marker(String)
     case cluster(memberIds: [String], region: MKCoordinateRegion)
   }
 
-  private enum ShapeKind {
-    case polyline
-    case polygon
-    case circle
-  }
-
-  private static let asyncThreshold = 500
-
   private weak var mapView: GMSMapView?
   private var markers: [String: GMSMarker] = [:]
+  private var markerVersions: [String: Int] = [:]
   private var polylines: [String: GMSPolyline] = [:]
   private var polygons: [String: GMSPolygon] = [:]
   private var circles: [String: GMSCircle] = [:]
-  private var allMarkerDescriptors: [MarkerDescriptor] = []
-  private var markersFingerprint = 0
-  private var spatialIndex: MarkerSpatialIndex?
-  private var clusteringEnabled = false
+  private let markerPipeline: MarkerRenderPipeline
+  private var clusterIconCache: [String: UIImage] = [:]
 
   var onMarkerPress: ((String) -> Void)?
   var onMarkerDragEnd: ((String, Coordinate) -> Void)?
@@ -36,62 +29,62 @@ final class GoogleMapOverlayController {
 
   init(mapView: GMSMapView) {
     self.mapView = mapView
+    markerPipeline = MarkerRenderPipeline(clusterCellPoints: Self.clusterCellPoints)
   }
 
   private var usesViewportPipeline: Bool {
-    clusteringEnabled || allMarkerDescriptors.count > Self.asyncThreshold
+    markerPipeline.usesViewportPipeline
   }
 
   func reset() {
+    markerPipeline.reset()
     clearMarkers()
     clearShapes()
-    allMarkerDescriptors.removeAll()
-    markersFingerprint = 0
-    spatialIndex = nil
   }
 
   func setClusteringEnabled(_ enabled: Bool) {
-    guard clusteringEnabled != enabled else {
+    guard markerPipeline.setClusteringEnabled(enabled) else {
       return
     }
-
-    clusteringEnabled = enabled
     reapplyMarkers()
   }
 
   func setMarkers(_ descriptors: [MarkerDescriptor]?) {
-    let next = descriptors ?? []
-    let fingerprint = MarkerViewportFilter.markersFingerprint(next)
-    guard fingerprint != markersFingerprint else {
+    guard markerPipeline.setMarkers(descriptors) else {
       return
     }
-
-    markersFingerprint = fingerprint
-    allMarkerDescriptors = next
-    spatialIndex = nil
     reapplyMarkers()
   }
 
   func refreshViewportMarkers() {
-    guard let mapView, let index = spatialIndex, usesViewportPipeline else {
+    guard let mapView, usesViewportPipeline else {
       return
     }
 
-    let region = mapView.currentNitroRegion().toMKCoordinateRegion()
-    let candidates = index.candidates(in: region)
-    let elements: [MarkerClusterEngine.Element]
-    if clusteringEnabled {
-      elements = MarkerClusterEngine.clusters(
-        candidates: candidates,
-        region: region,
-        viewSize: mapView.bounds.size
-      )
-    } else {
-      elements = MarkerViewportFilter
-        .displaySubset(candidates: candidates, region: region)
-        .map { .single($0) }
+    markerPipeline.refreshNow(
+      displayedVersions: markerVersions,
+      region: mapView.currentNitroRegion().toMKCoordinateRegion(),
+      viewSize: mapView.bounds.size,
+      apply: { [weak self] diff in
+        self?.applyDiff(diff)
+      }
+    )
+  }
+
+  func scheduleViewportRefresh(immediate: Bool = false) {
+    guard let mapView, usesViewportPipeline else {
+      return
     }
-    reconcileMarkerElements(elements)
+
+    markerPipeline.scheduleViewportRefresh(
+      displayedVersions: markerVersions,
+      region: mapView.currentNitroRegion().toMKCoordinateRegion(),
+      viewSize: mapView.bounds.size,
+      immediate: immediate,
+      apply: { [weak self] diff in
+        self?.applyDiff(diff)
+      }
+    )
   }
 
   func handleMarkerTap(_ marker: GMSMarker) -> Bool {
@@ -164,35 +157,43 @@ final class GoogleMapOverlayController {
   }
 
   private func reapplyMarkers() {
-    if usesViewportPipeline {
-      spatialIndex = MarkerSpatialIndex(markers: allMarkerDescriptors)
-      refreshViewportMarkers()
-    } else {
-      spatialIndex = nil
-      reconcileMarkerElements(allMarkerDescriptors.map { .single($0) })
-    }
-  }
-
-  private func reconcileMarkerElements(_ elements: [MarkerClusterEngine.Element]) {
     guard let mapView else {
       return
     }
 
-    var nextKeys = Set<String>()
-    for element in elements {
-      let key = element.diffKey
-      nextKeys.insert(key)
-      if let marker = markers[key] {
-        updateMarker(marker, with: element)
-      } else {
-        let marker = makeMarker(for: element)
-        marker.map = mapView
-        markers[key] = marker
+    markerPipeline.reapply(
+      displayedVersions: markerVersions,
+      region: mapView.currentNitroRegion().toMKCoordinateRegion(),
+      viewSize: mapView.bounds.size,
+      apply: { [weak self] diff in
+        self?.applyDiff(diff)
       }
+    )
+  }
+
+  private func applyDiff(_ diff: MarkerRenderDiff) {
+    guard let mapView else {
+      return
     }
 
-    for key in Set(markers.keys).subtracting(nextKeys) {
+    for key in diff.removedKeys {
       markers.removeValue(forKey: key)?.map = nil
+      markerVersions.removeValue(forKey: key)
+    }
+
+    for entry in diff.added {
+      let marker = makeMarker(for: entry.element)
+      marker.map = mapView
+      markers[entry.key] = marker
+      markerVersions[entry.key] = entry.version
+    }
+
+    for entry in diff.retained {
+      guard let marker = markers[entry.key] else {
+        continue
+      }
+      updateMarker(marker, with: entry.element)
+      markerVersions[entry.key] = entry.version
     }
   }
 
@@ -217,17 +218,26 @@ final class GoogleMapOverlayController {
       marker.title = nil
       marker.snippet = nil
       marker.isDraggable = false
-      marker.icon = Self.clusterIcon(count: count)
+      let icon = clusterIcon(count: count)
+      if marker.icon !== icon {
+        marker.icon = icon
+      }
       marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
       marker.userData = MarkerPayload.cluster(memberIds: memberIds, region: region)
     }
   }
 
-  private static func clusterIcon(count: Int) -> UIImage {
+  private func clusterIcon(count: Int) -> UIImage {
     let diameter = ClusterBadgeMetrics.diameter(for: count)
+    let text = Self.formatClusterCount(count)
+    let cacheKey = "\(Int(diameter)):\(text)"
+    if let icon = clusterIconCache[cacheKey] {
+      return icon
+    }
+
     let format = UIGraphicsImageRendererFormat.default()
     format.scale = UIScreen.main.scale
-    return UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter), format: format)
+    let icon = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter), format: format)
       .image { context in
         let rect = CGRect(x: 0, y: 0, width: diameter, height: diameter)
         let colors = [
@@ -250,7 +260,6 @@ final class GoogleMapOverlayController {
         borderPath.lineWidth = 2
         borderPath.stroke()
 
-        let text = count >= 1000 ? String(format: "%.1fk", Double(count) / 1000) : String(count)
         let attributes: [NSAttributedString.Key: Any] = [
           .font: UIFont.systemFont(ofSize: 13, weight: .bold),
           .foregroundColor: UIColor.white,
@@ -261,6 +270,15 @@ final class GoogleMapOverlayController {
           withAttributes: attributes
         )
       }
+    clusterIconCache[cacheKey] = icon
+    return icon
+  }
+
+  private static func formatClusterCount(_ count: Int) -> String {
+    if count >= 1000 {
+      return String(format: "%.1fk", Double(count) / 1000)
+    }
+    return String(count)
   }
 
   private func clearMarkers() {
@@ -268,6 +286,7 @@ final class GoogleMapOverlayController {
       marker.map = nil
     }
     markers.removeAll()
+    markerVersions.removeAll()
   }
 
   private func clearShapes() {

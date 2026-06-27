@@ -2,6 +2,7 @@ import CoreLocation
 import GoogleMaps
 import MapKit
 import NitroModules
+import QuartzCore
 import UIKit
 
 final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
@@ -10,7 +11,8 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   private var nextProgrammaticUpdateID = 0
   private var isMapReady = false
   private var hasDeliveredMapReady = false
-  private var liveClusterTimer: Timer?
+  private var isUserGestureMoving = false
+  private var lastLiveMarkerRefreshTime: CFTimeInterval = 0
   private var myLocationObservation: NSKeyValueObservation?
   private weak var followedLocationMapView: GMSMapView?
   private var _googleMapId: String?
@@ -241,8 +243,8 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   }
 
   func prepareForRecycle() {
-    liveClusterTimer?.invalidate()
-    liveClusterTimer = nil
+    isUserGestureMoving = false
+    lastLiveMarkerRefreshTime = 0
     isProgrammaticUpdate = false
     pendingProgrammaticUpdateIDs.removeAll()
     isMapReady = false
@@ -347,21 +349,40 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     }
   }
 
-  private func startLiveClustering() {
-    guard liveClusterTimer == nil else {
-      return
-    }
-    let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
-      self?.overlayController.refreshViewportMarkers()
-    }
-    RunLoop.main.add(timer, forMode: .common)
-    liveClusterTimer = timer
+  private func refreshVisibleMarkers() {
+    overlayController.scheduleViewportRefresh(immediate: true)
   }
 
-  private func stopLiveClustering() {
-    liveClusterTimer?.invalidate()
-    liveClusterTimer = nil
+  private func refreshVisibleMarkersForInitialRenderIfNeeded() {
+    guard !isMapReady else {
+      return
+    }
+    refreshVisibleMarkers()
+  }
+
+  private func startGestureMarkerRefresh() {
+    isUserGestureMoving = true
+    lastLiveMarkerRefreshTime = 0
+  }
+
+  private func refreshGestureMarkersIfNeeded() {
+    guard isUserGestureMoving else {
+      return
+    }
+
+    let now = CACurrentMediaTime()
+    guard now - lastLiveMarkerRefreshTime >= MarkerRenderPipeline.liveRefreshInterval else {
+      return
+    }
+
+    lastLiveMarkerRefreshTime = now
     overlayController.refreshViewportMarkers()
+  }
+
+  private func stopGestureMarkerRefresh() {
+    isUserGestureMoving = false
+    lastLiveMarkerRefreshTime = 0
+    refreshVisibleMarkers()
   }
 
   private func animateToClusterRegion(_ region: MKCoordinateRegion) {
@@ -482,13 +503,17 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
 extension GoogleMapProviderAdapter: GMSMapViewDelegate {
   func mapView(_ mapView: GMSMapView, willMove gesture: Bool) {
     if gesture {
-      startLiveClustering()
+      startGestureMarkerRefresh()
       notifyRegionChange(complete: false)
     }
   }
 
+  func mapView(_ mapView: GMSMapView, didChange position: GMSCameraPosition) {
+    refreshGestureMarkersIfNeeded()
+  }
+
   func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
-    stopLiveClustering()
+    stopGestureMarkerRefresh()
     notifyRegionChange(complete: true)
     endProgrammaticUpdate()
     notifyMapReadyIfNeeded()
@@ -515,6 +540,7 @@ extension GoogleMapProviderAdapter: GMSMapViewDelegate {
   }
 
   func mapViewSnapshotReady(_ mapView: GMSMapView) {
+    refreshVisibleMarkersForInitialRenderIfNeeded()
     notifyMapReadyIfNeeded()
   }
 }

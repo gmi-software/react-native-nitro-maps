@@ -314,7 +314,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     guard liveClusterTimer == nil else {
       return
     }
-    let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+    let timer = Timer(timeInterval: MarkerRenderPipeline.liveRefreshInterval, repeats: true) { [weak self] _ in
       self?.overlayController.refreshNow()
     }
     RunLoop.main.add(timer, forMode: .common)
