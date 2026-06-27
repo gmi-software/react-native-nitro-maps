@@ -18,6 +18,7 @@ final class HybridMapView: HybridMapViewSpec {
   private var _showsCompass: Bool?
   private var _showsScale: Bool?
   private var _customMapStyle: String?
+  private var _googleMapId: String?
   private var _clusteringEnabled: Bool?
   private var _mapPadding: EdgePadding?
 
@@ -131,6 +132,20 @@ final class HybridMapView: HybridMapViewSpec {
     set {
       _customMapStyle = newValue
       adapter?.customMapStyle = newValue
+    }
+  }
+
+  var googleMapId: String? {
+    get { _googleMapId }
+    set {
+      guard _googleMapId != newValue else {
+        return
+      }
+
+      _googleMapId = newValue
+      if _provider == .google, adapter != nil {
+        installAdapter(for: _provider)
+      }
     }
   }
 
@@ -255,6 +270,7 @@ final class HybridMapView: HybridMapViewSpec {
     _showsCompass = nil
     _showsScale = nil
     _customMapStyle = nil
+    _googleMapId = nil
     _clusteringEnabled = nil
     _mapPadding = nil
     markers = nil
@@ -297,7 +313,9 @@ final class HybridMapView: HybridMapViewSpec {
     switch provider {
     case .apple:
       return AppleMapProviderAdapter()
-    case .google, .openstreetmap, .mapbox:
+    case .google:
+      return GoogleMapProviderAdapter(googleMapId: _googleMapId)
+    case .openstreetmap, .mapbox:
       preconditionFailure("Map provider \"\(provider)\" is not supported on iOS.")
     }
   }
@@ -326,6 +344,7 @@ final class HybridMapView: HybridMapViewSpec {
     adapter.showsCompass = _showsCompass
     adapter.showsScale = _showsScale
     adapter.customMapStyle = _customMapStyle
+    adapter.googleMapId = _googleMapId
     adapter.clusteringEnabled = _clusteringEnabled
     adapter.mapPadding = _mapPadding
     adapter.onRegionChange = onRegionChange

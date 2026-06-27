@@ -17,15 +17,44 @@ enum MarkerClusterEngine {
       region: MKCoordinateRegion
     )
 
-    /// Stable identity for diffing. Cluster keys embed the count so a membership
-    /// change replaces the badge instead of showing a stale number.
+    /// Stable identity for diffing. Count changes update the retained badge
+    /// instead of removing and re-adding the native marker during gestures.
     var diffKey: String {
       switch self {
       case let .single(descriptor):
         return "s:" + descriptor.id
-      case let .cluster(key, _, count, _, _):
-        return "c:" + key + ":" + String(count)
+      case let .cluster(key, _, _, _, _):
+        return "c:" + key
       }
+    }
+
+    var renderVersion: Int {
+      var hasher = Hasher()
+      switch self {
+      case let .single(descriptor):
+        hasher.combine("single")
+        hasher.combine(descriptor.id)
+        hasher.combine(descriptor.coordinate.latitude)
+        hasher.combine(descriptor.coordinate.longitude)
+        hasher.combine(descriptor.title)
+        hasher.combine(descriptor.subtitle)
+        hasher.combine(descriptor.draggable)
+        hasher.combine(descriptor.clusterable)
+      case let .cluster(key, coordinate, count, memberIds, region):
+        hasher.combine("cluster")
+        hasher.combine(key)
+        hasher.combine(coordinate.latitude)
+        hasher.combine(coordinate.longitude)
+        hasher.combine(count)
+        for id in memberIds.sorted() {
+          hasher.combine(id)
+        }
+        hasher.combine(region.center.latitude)
+        hasher.combine(region.center.longitude)
+        hasher.combine(region.span.latitudeDelta)
+        hasher.combine(region.span.longitudeDelta)
+      }
+      return hasher.finalize()
     }
 
     func makeAnnotation() -> MKAnnotation {
@@ -45,7 +74,7 @@ enum MarkerClusterEngine {
   }
 
   /// Target cluster cell size in points.
-  private static let cellPoints: Double = 64
+  static let defaultCellPoints: Double = 64
 
   private static func wrapsLongitude(in region: MKCoordinateRegion) -> Bool {
     region.span.longitudeDelta > 180
@@ -120,7 +149,8 @@ enum MarkerClusterEngine {
   static func clusters(
     candidates: [MarkerDescriptor],
     region: MKCoordinateRegion,
-    viewSize: CGSize
+    viewSize: CGSize,
+    cellPoints: Double = defaultCellPoints
   ) -> [Element] {
     guard !candidates.isEmpty else {
       return []
@@ -140,8 +170,9 @@ enum MarkerClusterEngine {
       return singles
     }
 
-    let cols = max(1, Int(Double(viewSize.width) / cellPoints))
-    let rows = max(1, Int(Double(viewSize.height) / cellPoints))
+    let clusterCellPoints = max(1, cellPoints)
+    let cols = max(1, Int(Double(viewSize.width) / clusterCellPoints))
+    let rows = max(1, Int(Double(viewSize.height) / clusterCellPoints))
     let wraps = wrapsLongitude(in: region)
     let referenceLon = region.center.longitude - region.span.longitudeDelta / 2
     // Quantize cell size and anchor the grid to absolute (0,0) coordinates so
@@ -303,5 +334,241 @@ enum MarkerClusterEngine {
       longitudeDelta: max((maxLon - minLon) * 1.6, 0.01)
     )
     return MKCoordinateRegion(center: center, span: span)
+  }
+}
+
+struct MarkerRenderEntry {
+  let key: String
+  let element: MarkerClusterEngine.Element
+  let version: Int
+}
+
+struct MarkerRenderDiff {
+  let removedKeys: Set<String>
+  let added: [MarkerRenderEntry]
+  let retained: [MarkerRenderEntry]
+}
+
+final class MarkerRenderPipeline {
+  private static let asyncThreshold = 500
+  static let liveRefreshInterval: TimeInterval = 0.1
+
+  private let clusterCellPoints: Double
+  private var allMarkerDescriptors: [MarkerDescriptor] = []
+  private var spatialIndex: MarkerSpatialIndex?
+  private var viewportRefreshWorkItem: DispatchWorkItem?
+  private var markersFingerprint = 0
+  private var refreshGeneration = 0
+  private var clusteringEnabled = false
+  private let computeQueue = DispatchQueue(
+    label: "com.nitromaps.markerCompute",
+    qos: .userInitiated
+  )
+
+  init(clusterCellPoints: Double = MarkerClusterEngine.defaultCellPoints) {
+    self.clusterCellPoints = clusterCellPoints
+  }
+
+  var usesViewportPipeline: Bool {
+    clusteringEnabled || allMarkerDescriptors.count > Self.asyncThreshold
+  }
+
+  func reset() {
+    viewportRefreshWorkItem?.cancel()
+    viewportRefreshWorkItem = nil
+    refreshGeneration += 1
+    allMarkerDescriptors.removeAll()
+    spatialIndex = nil
+    markersFingerprint = 0
+    clusteringEnabled = false
+  }
+
+  func setClusteringEnabled(_ enabled: Bool) -> Bool {
+    guard clusteringEnabled != enabled else {
+      return false
+    }
+
+    clusteringEnabled = enabled
+    return true
+  }
+
+  func setMarkers(_ descriptors: [MarkerDescriptor]?) -> Bool {
+    let next = descriptors ?? []
+    let fingerprint = MarkerViewportFilter.markersFingerprint(next)
+    guard fingerprint != markersFingerprint else {
+      return false
+    }
+
+    markersFingerprint = fingerprint
+    allMarkerDescriptors = next
+    spatialIndex = nil
+    return true
+  }
+
+  func reapply(
+    displayedVersions: [String: Int],
+    region: MKCoordinateRegion,
+    viewSize: CGSize,
+    apply: @escaping (MarkerRenderDiff) -> Void
+  ) {
+    if usesViewportPipeline {
+      rebuildIndexAndRefresh(
+        displayedVersions: displayedVersions,
+        region: region,
+        viewSize: viewSize,
+        apply: apply
+      )
+    } else {
+      viewportRefreshWorkItem?.cancel()
+      viewportRefreshWorkItem = nil
+      refreshGeneration += 1
+      apply(Self.computeDiff(
+        target: allMarkerDescriptors.map { .single($0) },
+        displayed: displayedVersions
+      ))
+    }
+  }
+
+  func scheduleViewportRefresh(
+    displayedVersions: [String: Int],
+    region: MKCoordinateRegion,
+    viewSize: CGSize,
+    immediate: Bool = false,
+    apply: @escaping (MarkerRenderDiff) -> Void
+  ) {
+    guard usesViewportPipeline else {
+      return
+    }
+
+    viewportRefreshWorkItem?.cancel()
+    refreshGeneration += 1
+    let generation = refreshGeneration
+    let work = DispatchWorkItem { [weak self] in
+      guard let self, generation == self.refreshGeneration else {
+        return
+      }
+      self.refreshNow(
+        displayedVersions: displayedVersions,
+        region: region,
+        viewSize: viewSize,
+        apply: apply
+      )
+    }
+    viewportRefreshWorkItem = work
+
+    if immediate {
+      work.perform()
+    } else {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
+    }
+  }
+
+  func refreshNow(
+    displayedVersions: [String: Int],
+    region: MKCoordinateRegion,
+    viewSize: CGSize,
+    apply: @escaping (MarkerRenderDiff) -> Void
+  ) {
+    guard usesViewportPipeline else {
+      return
+    }
+
+    guard let index = spatialIndex else {
+      rebuildIndexAndRefresh(
+        displayedVersions: displayedVersions,
+        region: region,
+        viewSize: viewSize,
+        apply: apply
+      )
+      return
+    }
+
+    let clustering = clusteringEnabled
+    refreshGeneration += 1
+    let generation = refreshGeneration
+    let clusterCellPoints = self.clusterCellPoints
+
+    computeQueue.async { [weak self] in
+      let candidates = index.candidates(in: region)
+      let elements: [MarkerClusterEngine.Element]
+      if clustering {
+        elements = MarkerClusterEngine.clusters(
+          candidates: candidates,
+          region: region,
+          viewSize: viewSize,
+          cellPoints: clusterCellPoints
+        )
+      } else {
+        elements = MarkerViewportFilter
+          .displaySubset(candidates: candidates, region: region)
+          .map { .single($0) }
+      }
+
+      let diff = Self.computeDiff(target: elements, displayed: displayedVersions)
+      DispatchQueue.main.async {
+        guard let self, generation == self.refreshGeneration else {
+          return
+        }
+        apply(diff)
+      }
+    }
+  }
+
+  private func rebuildIndexAndRefresh(
+    displayedVersions: [String: Int],
+    region: MKCoordinateRegion,
+    viewSize: CGSize,
+    apply: @escaping (MarkerRenderDiff) -> Void
+  ) {
+    let descriptors = allMarkerDescriptors
+    refreshGeneration += 1
+    let generation = refreshGeneration
+
+    computeQueue.async { [weak self] in
+      let index = MarkerSpatialIndex(markers: descriptors)
+      DispatchQueue.main.async {
+        guard let self, generation == self.refreshGeneration else {
+          return
+        }
+        self.spatialIndex = index
+        self.refreshNow(
+          displayedVersions: displayedVersions,
+          region: region,
+          viewSize: viewSize,
+          apply: apply
+        )
+      }
+    }
+  }
+
+  private static func computeDiff(
+    target: [MarkerClusterEngine.Element],
+    displayed: [String: Int]
+  ) -> MarkerRenderDiff {
+    var nextKeys = Set<String>()
+    nextKeys.reserveCapacity(target.count)
+    var added: [MarkerRenderEntry] = []
+    var retained: [MarkerRenderEntry] = []
+
+    for element in target {
+      let key = element.diffKey
+      guard nextKeys.insert(key).inserted else {
+        continue
+      }
+      let version = element.renderVersion
+      if let displayedVersion = displayed[key] {
+        if displayedVersion != version {
+          retained.append(MarkerRenderEntry(key: key, element: element, version: version))
+        }
+      } else {
+        added.append(MarkerRenderEntry(key: key, element: element, version: version))
+      }
+    }
+
+    return MarkerRenderDiff(
+      removedKeys: Set(displayed.keys).subtracting(nextKeys),
+      added: added,
+      retained: retained
+    )
   }
 }

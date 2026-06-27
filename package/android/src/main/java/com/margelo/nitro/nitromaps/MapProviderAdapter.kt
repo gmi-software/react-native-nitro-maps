@@ -18,6 +18,7 @@ interface MapProviderAdapter {
   var showsCompass: Boolean?
   var showsScale: Boolean?
   var customMapStyle: String?
+  var googleMapId: String?
   var clusteringEnabled: Boolean?
   var mapPadding: EdgePadding?
 

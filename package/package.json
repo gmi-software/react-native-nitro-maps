@@ -11,9 +11,11 @@
       "types": "./lib/typescript/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./app.plugin.js": "./app.plugin.js",
     "./package.json": "./package.json"
   },
   "files": [
+    "app.plugin.js",
     "src",
     "lib",
     "nitrogen",

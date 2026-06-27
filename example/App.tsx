@@ -57,7 +57,7 @@ const SUPPORTED_MAP_PROVIDERS = getSupportedMapProviders();
 function getSupportedMapProviders(): SupportedExampleProvider[] {
   switch (Platform.OS) {
     case 'ios':
-      return ['apple'];
+      return ['apple', 'google'];
     case 'android':
       return ['google'];
     default:

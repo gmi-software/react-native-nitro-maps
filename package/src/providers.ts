@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import type { MapProvider } from './types/map';
 
 const SUPPORTED_PROVIDERS = {
-  ios: ['apple'],
+  ios: ['apple', 'google'],
   android: ['google'],
 } as const satisfies Record<string, readonly MapProvider[]>;
 

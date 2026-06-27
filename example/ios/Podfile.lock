@@ -75,6 +75,9 @@ PODS:
     - ExpoModulesWorklets
     - RNWorklets
   - FBLazyVector (0.85.3)
+  - GoogleMaps (10.14.0):
+    - GoogleMaps/Maps (= 10.14.0)
+  - GoogleMaps/Maps (10.14.0)
   - hermes-engine (250829098.0.10):
     - hermes-engine/Pre-built (= 250829098.0.10)
   - hermes-engine/Pre-built (250829098.0.10)
@@ -1501,6 +1504,7 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - react-native-nitro-maps (0.0.1):
+    - GoogleMaps
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -2149,6 +2153,10 @@ DEPENDENCIES:
   - "RNWorklets (from `../../node_modules/.bun/react-native-worklets@0.8.3+fb96e01b5a95c1ee/node_modules/react-native-worklets`)"
   - "Yoga (from `../../node_modules/.bun/react-native@0.85.3+d6f903d171a23bdf/node_modules/react-native/ReactCommon/yoga`)"
 
+SPEC REPOS:
+  trunk:
+    - GoogleMaps
+
 EXTERNAL SOURCES:
   EXConstants:
     :path: "../../node_modules/.bun/expo-constants@56.0.18+287a87011099de27/node_modules/expo-constants/ios"
@@ -2346,6 +2354,7 @@ SPEC CHECKSUMS:
   ExpoModulesWorklets: 25d712f4e0a4eb37397d46c0ff5b450eca897fd1
   ExpoModulesWorkletsAdapter: c3388fcbf667302ec0444dd698e694066eb60898
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
+  GoogleMaps: 23807b5617f32664952c04220b3b292df87ee884
   hermes-engine: fe6c9a684d9871dfd86af7d57280b69e9f1e1151
   NitroModules: 994eaa7fc39d1fb4b76bb61054312c9796c4a649
   RCTDeprecation: a4c521821fab57cbb125b36effe84d897d0dfa12
@@ -2385,7 +2394,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: fec3e025f0ffba6b32cd2a1d7bbdee3e269aae90
   React-microtasksnativemodule: ab33a818d339f5a1da308893c11b487be66121a8
   React-mutationobservernativemodule: a42d1626651ccd7d0dc02a56e69d4ec77c248893
-  react-native-nitro-maps: abcf348f2c563cae4bdfbb8aeae77a7efebc82ac
+  react-native-nitro-maps: ead47c4b4b631ce800f49e5491c265bb1055c63b
   React-NativeModulesApple: deba264b03bd79c6bd61014fa30e40321b5e443a
   React-networking: 35e6070b084f435429f85c5db40b4d5b38652fe9
   React-oscompat: 64a0c7ef5441855dc6e2a6afe8ba8f92aa05075e

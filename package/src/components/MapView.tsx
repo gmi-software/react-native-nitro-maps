@@ -14,6 +14,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     style,
     children,
     provider,
+    googleMapId,
     region,
     camera,
     mapType = 'standard',
@@ -151,12 +152,13 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   return (
     <NativeMapView
-      key={resolvedProvider}
+      key={`${resolvedProvider}:${googleMapId ?? ''}`}
       style={style}
       hybridRef={callback((nativeRef) => {
         hybridRef.current = nativeRef;
       })}
       provider={resolvedProvider}
+      googleMapId={googleMapId}
       mapType={mapType}
       region={region}
       camera={camera}

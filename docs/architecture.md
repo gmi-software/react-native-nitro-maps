@@ -20,6 +20,7 @@
 │  Native Implementation                          │
 │  HybridMapView host → provider adapter          │
 │  iOS: AppleMapProviderAdapter → MapKit          │
+│       GoogleMapProviderAdapter → Google SDK     │
 │  Android: GoogleMapProviderAdapter → Google SDK  │
 │  C++: shared geometry / tile logic (optional)   │
 └─────────────────────────────────────────────────┘
@@ -53,7 +54,7 @@ Provider defaults are resolved in the React wrapper:
 | iOS      | `apple`          | `AppleMapProviderAdapter` backed by MapKit           |
 | Android  | `google`         | `GoogleMapProviderAdapter` backed by Google Maps SDK |
 
-Unsupported explicit providers fail early in JS. Native hosts also reject unsupported providers if one reaches native code unexpectedly. Changing `provider` remounts the native view through React `key={provider}` instead of recreating SDK views in place.
+The iOS host also supports the explicit `google` provider through `GoogleMapProviderAdapter`. Unsupported explicit providers fail early in JS. Native hosts also reject unsupported providers if one reaches native code unexpectedly. Changing `provider` or `googleMapId` remounts the native view instead of recreating SDK views in place.
 
 ### Provider adapters
 
@@ -77,19 +78,20 @@ Map and overlay callbacks are wired through Nitro listeners on the HybridView. C
 | Prop / method | Notes |
 | --- | --- |
 | `provider` | Optional map rendering backend. Defaults to `apple` on iOS and `google` on Android. Explicit unsupported providers throw. |
+| `googleMapId` | Google Cloud Map ID for the `google` provider. It is creation-time SDK configuration, so changing it remounts the native map view. |
 | `clusteringEnabled` | Custom grid-based clustering via `MarkerClusterEngine` on both platforms (viewport-aware, background compute). |
 | `Marker.clusterable` | Opt-out per marker (defaults to `true`). Non-clusterable markers always render individually. |
-| `customMapStyle` | JSON string. Full support on Android via `MapStyleOptions`. iOS 16+ applies a curated subset (POI/transit visibility, elevation) via `MKMapConfiguration`. |
+| `customMapStyle` | JSON string. The `google` provider uses Google Maps JSON styles on iOS and Android. The `apple` provider maps a curated subset to `MKMapConfiguration` on iOS 16+. |
 | `showsUserLocation` / `followsUserLocation` | Toggles the native user-location layer. Host app must request location permission (`NSLocationWhenInUseUsageDescription` on iOS; `ACCESS_FINE_LOCATION` on Android). |
 | `showsCompass` / `showsScale` | Compass on both platforms. Scale is iOS-only (`showsScale` is a no-op on Android). |
 | `mapPadding` | Edge insets in density-independent pixels. Applied via `layoutMargins` (iOS) or `setPadding` (Android). |
 | `fitToCoordinates(coords, padding?, animated?)` | Imperative ref method; fits camera to a set of coordinates with optional padding. |
 
-### Platform gaps (Phase 7)
+### Platform gaps (Phase 8)
 
-- **Provider availability** — only `apple` on iOS and `google` on Android are implemented. `google` on iOS, `openstreetmap`, and `mapbox` are planned provider adapters.
-- **Custom styles on iOS** — no full Google Maps JSON parity; only a curated subset is mapped to MapKit configuration.
-- **Scale control on Android** — Google Maps SDK has no native scale bar; `showsScale` is ignored.
+- **Provider availability** — `apple` and `google` are implemented on iOS, and `google` is implemented on Android. `openstreetmap` and `mapbox` are planned provider adapters.
+- **Custom styles on Apple MapKit** — no full Google Maps JSON parity; only a curated subset is mapped to MapKit configuration.
+- **Scale control on Google Maps** — Google Maps SDK has no native scale bar; `showsScale` is rejected for the `google` provider.
 - **User location** — the library toggles the layer only; permission prompts and manifest/Info.plist entries are the host app's responsibility.
 - **`followsUserLocation` on Android** — enables the location layer when permitted; continuous camera follow is not built into Google Maps and may require host-app camera updates.
 
@@ -134,6 +136,6 @@ React callbacks (onPress, onRegionChange, etc.)
 | Package manager    | Bun workspaces           | Fast, modern                           |
 | Module format      | ESM-only                 | Avoids dual-package hazard             |
 | Example app        | Expo SDK 56              | New Arch mandatory, good DX            |
-| iOS maps           | MapKit                   | Native, no API key needed              |
-| Android maps       | Google Maps SDK          | Industry standard                      |
+| iOS default maps   | MapKit                   | Native, no API key needed              |
+| Google maps        | Google Maps SDK          | Shared provider on iOS and Android     |
 | Provider switching | React remount            | Keeps native SDK lifecycle predictable |

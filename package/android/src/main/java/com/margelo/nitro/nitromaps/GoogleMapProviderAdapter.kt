@@ -13,19 +13,21 @@ import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.uimanager.ThemedReactContext
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.margelo.nitro.core.Promise
-import com.margelo.nitro.views.RecyclableView
 
 @Keep
 @DoNotStrip
-class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
+class GoogleMapProviderAdapter(
+  private val context: ThemedReactContext,
+  initialGoogleMapId: String?,
+) :
   MapProviderAdapter,
-  LifecycleEventListener,
-  RecyclableView {
+  LifecycleEventListener {
 
   private var googleMap: GoogleMap? = null
   private var isProgrammaticUpdate = false
@@ -39,7 +41,16 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
   private var pendingCircles: Array<CircleDescriptor>? = null
   private val mainHandler = Handler(Looper.getMainLooper())
 
-  override val view: MapView = MapView(context).also { mapView ->
+  private val googleMapIdAtCreation: String? = normalizeGoogleMapId(initialGoogleMapId)
+
+  override val view: MapView = MapView(
+    context,
+    GoogleMapOptions().apply {
+      googleMapIdAtCreation?.let { mapId ->
+        mapId(mapId)
+      }
+    },
+  ).also { mapView ->
     mapView.onCreate(null)
     context.addLifecycleEventListener(this@GoogleMapProviderAdapter)
 
@@ -156,6 +167,14 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
       applyCustomMapStyle()
     }
 
+  override var googleMapId: String?
+    get() = googleMapIdAtCreation
+    set(value) {
+      check(normalizeGoogleMapId(value) == googleMapIdAtCreation) {
+        "googleMapId is applied when the Google MapView is created. Recreate the adapter to change it."
+      }
+    }
+
   private var _clusteringEnabled: Boolean? = null
   override var clusteringEnabled: Boolean?
     get() = _clusteringEnabled
@@ -177,7 +196,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
           }
         }
       }
-      overlayController.updateMarkers(_markers)
+      overlayController.setMarkers(_markers)
     }
 
   private var _mapPadding: EdgePadding? = null
@@ -200,7 +219,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
     set(value) {
       _markers = value
       if (googleMap != null) {
-        overlayController.updateMarkers(value)
+        overlayController.setMarkers(value)
       } else {
         pendingMarkers = value
       }
@@ -368,12 +387,11 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
     syncMarkerPressHandlers()
 
     map.setOnCameraMoveListener {
+      overlayController.onCameraMove()
       notifyRegionChange(complete = false)
     }
     map.setOnCameraIdleListener {
-      if (_clusteringEnabled == true) {
-        overlayController.onCameraIdle()
-      }
+      overlayController.onCameraIdle()
       notifyRegionChange(complete = true)
     }
     map.setOnMapClickListener { latLng ->
@@ -435,7 +453,7 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
       }
     }
 
-    overlayController.updateMarkers(pendingMarkers ?: _markers)
+    overlayController.setMarkers(pendingMarkers ?: _markers)
     overlayController.updatePolylines(pendingPolylines ?: _polylines)
     overlayController.updatePolygons(pendingPolygons ?: _polygons)
     overlayController.updateCircles(pendingCircles ?: _circles)
@@ -735,3 +753,5 @@ class GoogleMapProviderAdapter(private val context: ThemedReactContext) :
     isDestroyed = true
   }
 }
+
+private fun normalizeGoogleMapId(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }

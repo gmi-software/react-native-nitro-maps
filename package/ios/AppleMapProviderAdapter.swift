@@ -120,6 +120,8 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     }
   }
 
+  var googleMapId: String?
+
   var clusteringEnabled: Bool? {
     didSet {
       overlayController.setClusteringEnabled(clusteringEnabled == true)
@@ -312,7 +314,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     guard liveClusterTimer == nil else {
       return
     }
-    let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+    let timer = Timer(timeInterval: MarkerRenderPipeline.liveRefreshInterval, repeats: true) { [weak self] _ in
       self?.overlayController.refreshNow()
     }
     RunLoop.main.add(timer, forMode: .common)
@@ -425,6 +427,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     showsCompass = nil
     showsScale = nil
     customMapStyle = nil
+    googleMapId = nil
     clusteringEnabled = nil
     mapPadding = nil
     view.mapType = .standard
