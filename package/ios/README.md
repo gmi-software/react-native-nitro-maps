@@ -17,14 +17,33 @@ Generated Nitrogen bindings live in `../nitrogen/generated/ios/` and are include
 
 ## Google Maps API key
 
-The library does not ship an API key. Host apps that use `provider="google"` on iOS must provide one in their `Info.plist`:
+The library does not ship an API key. Host apps that use `provider="google"` on iOS must provide one.
+
+Expo apps can set the key with the package config plugin:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-nitro-maps",
+        {
+          "iosGoogleMapsApiKey": "YOUR_API_KEY"
+        }
+      ]
+    ]
+  }
+}
+```
+
+Non-Expo apps can add the key directly to `Info.plist`:
 
 ```xml
 <key>GoogleMapsIosApiKey</key>
 <string>YOUR_API_KEY</string>
 ```
 
-For the example Expo app, set `GOOGLE_MAPS_IOS_API_KEY` (see `example/.env.example`) before running `expo prebuild` or `expo run:ios`.
+For the example Expo app, set `GOOGLE_MAPS_IOS_API_KEY` or the shared `GOOGLE_MAPS_API_KEY` fallback (see `example/.env.example`) before running `expo prebuild` or `expo run:ios`.
 
 `googleMapId` is supported for Google Cloud Map ID styling:
 

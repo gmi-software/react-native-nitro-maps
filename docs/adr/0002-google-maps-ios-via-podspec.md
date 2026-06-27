@@ -14,7 +14,7 @@ Google's iOS SDK documentation recommends Swift Package Manager for many app int
 
 Declare `GoogleMaps` in `package/react-native-nitro-maps.podspec`.
 
-Host apps still own runtime configuration by providing a Google Maps iOS API key in their app bundle. The example app reads it from `GOOGLE_MAPS_IOS_API_KEY` into `Info.plist` as `GoogleMapsIosApiKey`.
+Host apps still own runtime configuration by providing a Google Maps iOS API key in their app bundle. The example app reads `GOOGLE_MAPS_IOS_API_KEY` with `GOOGLE_MAPS_API_KEY` as a shared fallback, then writes `GoogleMapsIosApiKey` through the package config plugin.
 
 ## Consequences
 

@@ -21,7 +21,26 @@ Generated Nitrogen bindings live in `../nitrogen/generated/android/kotlin/` and 
 
 ## Google Maps API key
 
-The library does not ship an API key. Host apps must provide one in their `AndroidManifest.xml`:
+The library does not ship an API key. Host apps must provide one.
+
+Expo apps can set the key with the package config plugin:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-nitro-maps",
+        {
+          "androidGoogleMapsApiKey": "YOUR_API_KEY"
+        }
+      ]
+    ]
+  }
+}
+```
+
+Non-Expo apps can add the key directly to `AndroidManifest.xml`:
 
 ```xml
 <meta-data
@@ -29,7 +48,7 @@ The library does not ship an API key. Host apps must provide one in their `Andro
   android:value="YOUR_API_KEY" />
 ```
 
-For the example Expo app, set `GOOGLE_MAPS_ANDROID_API_KEY` (see `example/.env.example`) before running `expo prebuild` or `expo run:android`. `GOOGLE_MAPS_API_KEY` remains accepted as an Android fallback for older local setups.
+For the example Expo app, set `GOOGLE_MAPS_ANDROID_API_KEY` or the shared `GOOGLE_MAPS_API_KEY` fallback (see `example/.env.example`) before running `expo prebuild` or `expo run:android`.
 
 `googleMapId` is supported for Google Cloud Map ID styling:
 

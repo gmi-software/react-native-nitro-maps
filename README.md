@@ -108,10 +108,29 @@ Provider-specific TypeScript props are exposed through `MapViewPropsForProvider<
 
 Host apps must provide platform API keys for the Google Maps SDK:
 
+- Expo: add the config plugin to your app config:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-nitro-maps",
+        {
+          "googleMapsApiKey": "YOUR_KEY_HERE"
+        }
+      ]
+    ]
+  }
+}
+```
+
+Use `iosGoogleMapsApiKey` and `androidGoogleMapsApiKey` instead when each platform needs a different restricted key.
+
 - iOS: add a `GoogleMapsIosApiKey` string to `Info.plist`.
 - Android: add `com.google.android.geo.API_KEY` metadata to `AndroidManifest.xml`.
 
-The example app reads `GOOGLE_MAPS_IOS_API_KEY` and `GOOGLE_MAPS_ANDROID_API_KEY` from the environment. `GOOGLE_MAPS_API_KEY` remains accepted as an Android fallback for older local setups.
+The example app uses the config plugin. It reads `GOOGLE_MAPS_IOS_API_KEY` and `GOOGLE_MAPS_ANDROID_API_KEY` with `GOOGLE_MAPS_API_KEY` as a shared fallback.
 
 The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling:
 
