@@ -19,7 +19,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.margelo.nitro.core.Promise
-import com.margelo.nitro.views.RecyclableView
 
 @Keep
 @DoNotStrip
@@ -28,8 +27,7 @@ class GoogleMapProviderAdapter(
   initialGoogleMapId: String?,
 ) :
   MapProviderAdapter,
-  LifecycleEventListener,
-  RecyclableView {
+  LifecycleEventListener {
 
   private var googleMap: GoogleMap? = null
   private var isProgrammaticUpdate = false

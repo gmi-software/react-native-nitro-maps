@@ -352,7 +352,7 @@ final class GoogleMapOverlayController {
       fallback: UIColor.systemBlue.withAlphaComponent(0.2)
     ) ?? UIColor.systemBlue.withAlphaComponent(0.2)
     circle.strokeWidth = CGFloat(descriptor.strokeWidth ?? 2)
-    circle.isTappable = descriptor.tappable ?? true
+    circle.isTappable = descriptor.tappable ?? false
     circle.userData = descriptor.id
   }
 

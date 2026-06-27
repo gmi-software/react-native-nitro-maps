@@ -441,8 +441,13 @@ final class MarkerRenderPipeline {
     }
 
     viewportRefreshWorkItem?.cancel()
+    refreshGeneration += 1
+    let generation = refreshGeneration
     let work = DispatchWorkItem { [weak self] in
-      self?.refreshNow(
+      guard let self, generation == self.refreshGeneration else {
+        return
+      }
+      self.refreshNow(
         displayedVersions: displayedVersions,
         region: region,
         viewSize: viewSize,
