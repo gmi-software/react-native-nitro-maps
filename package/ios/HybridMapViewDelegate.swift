@@ -108,6 +108,16 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
       return nil
     }
 
+    if marker.image != nil {
+      let imageView = mapView.dequeueReusableAnnotationView(
+        withIdentifier: NitroImageAnnotationView.reuseIdentifier,
+        for: marker
+      ) as! NitroImageAnnotationView
+
+      imageView.configure(for: marker)
+      return imageView
+    }
+
     let pinView = mapView.dequeueReusableAnnotationView(
       withIdentifier: NitroPinAnnotationView.reuseIdentifier,
       for: marker

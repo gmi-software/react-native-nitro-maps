@@ -74,6 +74,8 @@ class GoogleMapProviderAdapter(
       googleMap = map
       configureMap(map)
     }
+
+    installViewportSizeListener(mapView)
   }
 
   private var _mapType = MapType.STANDARD
@@ -601,21 +603,38 @@ class GoogleMapProviderAdapter(
     }
   }
 
+  private fun installViewportSizeListener(mapView: MapView) {
+    val syncViewportSize = {
+      if (mapView.width > 0 && mapView.height > 0) {
+        overlayController.setViewportSize(mapView.width, mapView.height)
+      }
+    }
+
+    mapView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      syncViewportSize()
+    }
+    runWhenViewLaidOut(mapView, syncViewportSize)
+  }
+
   private fun runWhenMapViewLaidOut(block: () -> Unit) {
-    if (view.width > 0 && view.height > 0) {
+    runWhenViewLaidOut(view, block)
+  }
+
+  private fun runWhenViewLaidOut(target: View, block: () -> Unit) {
+    if (target.width > 0 && target.height > 0) {
       updateOverlayViewportSize()
       block()
       return
     }
 
-    view.viewTreeObserver.addOnGlobalLayoutListener(
+    target.viewTreeObserver.addOnGlobalLayoutListener(
       object : ViewTreeObserver.OnGlobalLayoutListener {
         override fun onGlobalLayout() {
-          if (view.width <= 0 || view.height <= 0) {
+          if (target.width <= 0 || target.height <= 0) {
             return
           }
 
-          view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+          target.viewTreeObserver.removeOnGlobalLayoutListener(this)
           updateOverlayViewportSize()
           block()
         }

@@ -8,7 +8,11 @@ export type {
   MapViewPropsForProvider,
 } from './map';
 export type {
+  MarkerAnchor,
+  MarkerImage,
+  MarkerImageSource,
   MarkerDescriptor,
+  MarkerPoint,
   MarkerProps,
   OverlayEnteringAnimation,
   OverlayEnteringAnimationConfig,

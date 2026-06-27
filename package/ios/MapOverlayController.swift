@@ -148,7 +148,10 @@ final class MapOverlayController {
       switch entry.element {
       case let .single(descriptor):
         if let marker = existing as? MapMarkerAnnotation {
-          marker.update(from: descriptor)
+          let visualChanged = marker.update(from: descriptor)
+          if visualChanged {
+            refreshMarkerView(for: marker)
+          }
         }
       case let .cluster(key, coordinate, count, memberIds, region):
         if let cluster = existing as? MapClusterAnnotation {
@@ -165,6 +168,27 @@ final class MapOverlayController {
         }
       }
       displayedAnnotationVersions[entry.key] = entry.version
+    }
+  }
+
+  private func refreshMarkerView(for marker: MapMarkerAnnotation) {
+    guard let mapView, let view = mapView.view(for: marker) else {
+      return
+    }
+
+    let needsImageView = marker.image != nil
+    let hasImageView = view is NitroImageAnnotationView
+
+    if needsImageView != hasImageView {
+      mapView.removeAnnotation(marker)
+      mapView.addAnnotation(marker)
+      return
+    }
+
+    if let imageView = view as? NitroImageAnnotationView {
+      imageView.configure(for: marker)
+    } else {
+      (view as? NitroPinAnnotationView)?.configure(for: marker)
     }
   }
 

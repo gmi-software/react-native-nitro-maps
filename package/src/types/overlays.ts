@@ -1,4 +1,12 @@
+import type {
+  MarkerAnchor,
+  MarkerImage,
+  MarkerImageSource,
+  MarkerPoint,
+} from '../native/specs/overlays';
 import type { Coordinate } from './coordinate';
+
+export type { MarkerAnchor, MarkerImage, MarkerImageSource, MarkerPoint };
 
 export type OverlayEnteringAnimationPreset = 'fade' | 'fade-scale';
 
@@ -45,6 +53,24 @@ export interface MarkerDescriptor {
   /** Whether the marker participates in clustering when enabled on the map. */
   clusterable?: boolean;
 
+  /** Custom marker image. */
+  image?: MarkerImageSource;
+
+  /** Anchor point on the image relative to the coordinate (default bottom-center). */
+  anchor?: MarkerAnchor;
+
+  /** Additional center offset in dp (iOS-style). */
+  centerOffset?: MarkerPoint;
+
+  /** Clockwise rotation in degrees. */
+  rotation?: number;
+
+  /** When true, rotate with the map plane instead of staying screen-aligned. */
+  flat?: boolean;
+
+  /** Opacity from 0 to 1. */
+  opacity?: number;
+
   /** Entering animation override for this marker. */
   enteringAnimation?: OverlayEnteringAnimation;
 }
@@ -70,6 +96,24 @@ export interface MarkerProps {
 
   /** Whether the marker participates in clustering when enabled on the map. */
   clusterable?: boolean;
+
+  /** Custom marker image. */
+  image?: MarkerImageSource;
+
+  /** Anchor point on the image relative to the coordinate (default bottom-center). */
+  anchor?: MarkerAnchor;
+
+  /** Additional center offset in dp (iOS-style). */
+  centerOffset?: MarkerPoint;
+
+  /** Clockwise rotation in degrees. */
+  rotation?: number;
+
+  /** When true, rotate with the map plane instead of staying screen-aligned. */
+  flat?: boolean;
+
+  /** Opacity from 0 to 1. */
+  opacity?: number;
 
   /** Entering animation override for this marker. */
   enteringAnimation?: OverlayEnteringAnimation;

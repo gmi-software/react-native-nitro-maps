@@ -18,6 +18,7 @@ import { Polygon } from '../components/Polygon';
 import { Polyline } from '../components/Polyline';
 import type { OverlayComponentType, OverlayTypeName } from '../overlays/overlayType';
 import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
+import { resolveMarkerImage } from '../overlays/resolveMarkerImage';
 import { normalizeEnteringAnimation } from '../utils/enteringAnimation';
 
 interface OverlayCallbacks {
@@ -111,6 +112,12 @@ const overlayCollectors: OverlayCollector[] = [
         subtitle: props.subtitle,
         draggable: props.draggable,
         clusterable: props.clusterable,
+        image: resolveMarkerImage(props.image),
+        anchor: props.anchor,
+        centerOffset: props.centerOffset,
+        rotation: props.rotation,
+        flat: props.flat,
+        opacity: props.opacity,
         enteringAnimation: normalizeEnteringAnimation(props.enteringAnimation),
       });
       state.registry.set(overlayCallbackKey(OverlayType.Marker, id), {

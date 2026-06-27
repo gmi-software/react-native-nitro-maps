@@ -4,6 +4,7 @@ import UIKit
 /// Native MapKit marker view with system insertion animation, selection bounce, and styling.
 final class NitroPinAnnotationView: MKMarkerAnnotationView {
   static let reuseIdentifier = "NitroPin"
+  private static let defaultPinSize = CGSize(width: 40, height: 52)
 
   override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
     super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
@@ -27,5 +28,15 @@ final class NitroPinAnnotationView: MKMarkerAnnotationView {
     isDraggable = marker.draggable
     canShowCallout = marker.title != nil || marker.subtitle != nil
     displayPriority = .required
+    alpha = marker.opacity
+
+    layoutIfNeeded()
+    let pinSize = bounds.size == .zero ? Self.defaultPinSize : bounds.size
+    centerOffset = marker.centerOffset(forImageSize: pinSize)
+
+    let rotation = marker.rotation ?? 0
+    transform = marker.flat != true && rotation != 0
+      ? CGAffineTransform(rotationAngle: rotation * .pi / 180)
+      : .identity
   }
 }
