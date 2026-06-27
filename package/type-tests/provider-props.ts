@@ -18,6 +18,7 @@ export const defaultProviderProps: MapViewProps = {
   customMapStyle: '[]',
 };
 
+// @ts-expect-error Google Map IDs require the explicit Google provider.
 export const defaultProviderGoogleMapIdProps: MapViewProps = {
   googleMapId: 'google-map-id',
 };
