@@ -22,6 +22,7 @@ class MapOverlayController(
   private var googleMap: GoogleMap?,
   private val context: ThemedReactContext,
 ) {
+  private val markers = HashMap<String, Marker>()
   private val mainHandler = Handler(Looper.getMainLooper())
   private val density: Float = context.resources.displayMetrics.density
   private val markerIconFactory = MarkerIconFactory(context, density) { markers }

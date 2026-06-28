@@ -326,7 +326,11 @@ const ScenarioDock = memo(function ScenarioDock({
     <Animated.View
       entering={FadeInUp.delay(120)}
       layout={LinearTransition.springify()}
-      style={[styles.dock, expanded && styles.dockExpandedContainer]}
+      style={[
+        styles.dock,
+        expanded && styles.dockExpandedContainer,
+        { bottom: bottomInset + DOCK_BOTTOM_GAP },
+      ]}
     >
       {expanded ? (
         <Animated.View
