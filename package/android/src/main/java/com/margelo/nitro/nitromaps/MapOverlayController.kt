@@ -135,6 +135,7 @@ class MapOverlayController(
   fun refreshViewportMarkers(
     animateEntering: Boolean = true,
     updateRetained: Boolean = true,
+    maxAnimatedMarkers: Int = MAX_ANIMATED_MARKERS_PER_DIFF,
   ) {
     val map = googleMap ?: return
     val index = spatialIndex ?: return
@@ -186,7 +187,7 @@ class MapOverlayController(
         if (generation != refreshGeneration) {
           return@post
         }
-        applyDiff(removed, added, retained, animateEntering)
+        applyDiff(removed, added, retained, animateEntering, maxAnimatedMarkers)
       }
     }
   }
@@ -213,6 +214,7 @@ class MapOverlayController(
     added: List<ClusterElement>,
     retained: List<ClusterElement>,
     animateEntering: Boolean = true,
+    maxAnimatedMarkers: Int = MAX_ANIMATED_MARKERS_PER_DIFF,
   ) {
     val map = googleMap ?: return
 
@@ -223,8 +225,8 @@ class MapOverlayController(
       clusterByKey.remove(key)
     }
 
-    val addedMarkers = ArrayList<AddedMarker>(minOf(added.size, MAX_ANIMATED_MARKERS_PER_DIFF))
-    var remainingAnimationBudget = MAX_ANIMATED_MARKERS_PER_DIFF
+    var remainingAnimationBudget = maxAnimatedMarkers.coerceAtLeast(0)
+    val addedMarkers = ArrayList<AddedMarker>(minOf(added.size, remainingAnimationBudget))
     for (element in added) {
       val key = element.diffKey
       when (element) {
@@ -477,8 +479,9 @@ class MapOverlayController(
     lastLiveRefreshMs = SystemClock.uptimeMillis()
     if (usesViewportPipeline()) {
       refreshViewportMarkers(
-        animateEntering = false,
+        animateEntering = true,
         updateRetained = true,
+        maxAnimatedMarkers = MAX_LIVE_ANIMATED_MARKERS_PER_DIFF,
       )
     }
   }
@@ -612,6 +615,9 @@ class MapOverlayController(
 
     /** Main-thread marker animations are capped so bulk refreshes do not block gestures. */
     const val MAX_ANIMATED_MARKERS_PER_DIFF = 96
+
+    /** Live refresh keeps entrance motion visible without animating every marker during gestures. */
+    const val MAX_LIVE_ANIMATED_MARKERS_PER_DIFF = 24
 
     /** Coalesces rapid Google Maps idle callbacks produced by repeated short pans. */
     const val IDLE_REFRESH_DEBOUNCE_MS = 120L
