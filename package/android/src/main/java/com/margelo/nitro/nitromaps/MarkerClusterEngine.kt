@@ -10,9 +10,21 @@ import kotlin.math.roundToInt
 /** A single display element: an individual marker or a cluster badge. */
 internal sealed interface ClusterElement {
   val diffKey: String
+  val renderVersion: Int
 
   data class Single(val descriptor: MarkerDescriptor) : ClusterElement {
     override val diffKey: String get() = "s:" + descriptor.id
+    override val renderVersion: Int get() {
+      var hash = "single".hashCode()
+      hash = 31 * hash + descriptor.id.hashCode()
+      hash = 31 * hash + descriptor.coordinate.latitude.hashCode()
+      hash = 31 * hash + descriptor.coordinate.longitude.hashCode()
+      hash = 31 * hash + (descriptor.title?.hashCode() ?: 0)
+      hash = 31 * hash + (descriptor.subtitle?.hashCode() ?: 0)
+      hash = 31 * hash + (descriptor.draggable?.hashCode() ?: 0)
+      hash = 31 * hash + (descriptor.clusterable?.hashCode() ?: 0)
+      return hash
+    }
   }
 
   data class Cluster(
@@ -23,6 +35,21 @@ internal sealed interface ClusterElement {
     val bounds: LatLngBounds,
   ) : ClusterElement {
     override val diffKey: String get() = "c:$key"
+    override val renderVersion: Int get() {
+      var hash = "cluster".hashCode()
+      hash = 31 * hash + key.hashCode()
+      hash = 31 * hash + position.latitude.hashCode()
+      hash = 31 * hash + position.longitude.hashCode()
+      hash = 31 * hash + count.hashCode()
+      for (id in memberIds.sorted()) {
+        hash = 31 * hash + id.hashCode()
+      }
+      hash = 31 * hash + bounds.southwest.latitude.hashCode()
+      hash = 31 * hash + bounds.southwest.longitude.hashCode()
+      hash = 31 * hash + bounds.northeast.latitude.hashCode()
+      hash = 31 * hash + bounds.northeast.longitude.hashCode()
+      return hash
+    }
   }
 }
 
