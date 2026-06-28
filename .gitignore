@@ -16,6 +16,8 @@ package/nitrogen/
 example/.expo/
 example/dist/
 example/web-build/
+example/android/
+example/ios/
 
 # Native — Android (any module: package/, example/, etc.)
 .cxx/
