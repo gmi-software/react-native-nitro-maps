@@ -41,11 +41,11 @@ module.exports = {
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `googleMapsApiKey` | `string` | — | Android: injects `com.google.android.geo.API_KEY` meta-data. iOS: no-op (MapKit needs no key; reserved for future Google Maps iOS support in [#2](https://github.com/gmi-software/react-native-better-maps/issues/2)). |
+| `googleMapsApiKey` | `string` | — | Shared fallback used for both platforms when platform-specific keys are omitted. Android injects `com.google.android.geo.API_KEY`; iOS injects `GoogleMapsIosApiKey` for the `google` provider. |
 | `locationPermission` | `string \| false` | — | When set to a string: iOS `NSLocationWhenInUseUsageDescription` + Android `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`. |
 | `locationAlwaysPermission` | `string \| false` | — | When set to a string: iOS `NSLocationAlwaysAndWhenInUseUsageDescription` + Android `ACCESS_BACKGROUND_LOCATION`. |
 
-Omitting `googleMapsApiKey` does not fail prebuild. Android maps will not render until a key is provided (via the plugin or manually). iOS MapKit works without a key.
+Omitting `googleMapsApiKey` does not fail prebuild. Android maps and the iOS `google` provider will not render until a key is provided (via the plugin or manually). The iOS `apple` provider works without a key.
 
 ## Google Maps API key
 
@@ -83,8 +83,8 @@ expo prebuild --clean
 
 The plugin injects:
 
-- **Android:** `com.google.android.geo.API_KEY` meta-data (when `googleMapsApiKey` is set) and location permissions (when location options are set)
-- **iOS:** location usage description strings (when location options are set)
+- **Android:** `com.google.android.geo.API_KEY` meta-data (when an Android or shared Google Maps API key is set) and location permissions (when location options are set)
+- **iOS:** `GoogleMapsIosApiKey` in `Info.plist` (when an iOS or shared Google Maps API key is set) and location usage description strings (when location options are set)
 
 ## Run
 
