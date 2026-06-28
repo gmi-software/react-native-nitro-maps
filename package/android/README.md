@@ -56,6 +56,8 @@ For the example Expo app, set `GOOGLE_MAPS_ANDROID_API_KEY` or the shared `GOOGL
 <MapView provider="google" googleMapId="YOUR_MAP_ID" />
 ```
 
+Expo apps can use the built-in config plugin instead of manual manifest edits — see [docs/expo-setup.md](../../docs/expo-setup.md).
+
 ## Getting started
 
 1. Run `bun run nitrogen` from the repo root if you change the Nitro spec.

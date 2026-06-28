@@ -22,6 +22,8 @@ module.exports = {
         {
           iosGoogleMapsApiKey,
           androidGoogleMapsApiKey,
+          locationPermission:
+            'Allow $(PRODUCT_NAME) to use your location for map features.',
         },
       ],
     ],

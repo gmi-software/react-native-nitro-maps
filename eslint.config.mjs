@@ -9,6 +9,7 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/lib/**',
+      '**/plugin/build/**',
       '**/nitrogen/**',
       '**/.expo/**',
       '**/android/**',
@@ -27,6 +28,9 @@ export default tseslint.config(
       globals: {
         ...globals.node,
       },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {
