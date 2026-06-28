@@ -41,11 +41,19 @@ import {
   type MapProvider,
   type MapType,
   type MapViewRef,
+  type OverlayEnteringAnimation,
 } from 'react-native-nitro-maps';
 import { MAP_SCENARIOS, type MapScenario } from './examples';
 
 const MAP_TYPES: MapType[] = ['standard', 'satellite', 'hybrid'];
 type SupportedExampleProvider = Extract<MapProvider, 'apple' | 'google'>;
+type AnimationOptionId = 'system' | 'fade' | 'fade-scale' | 'none';
+
+type AnimationOption = {
+  id: AnimationOptionId;
+  label: string;
+  value: OverlayEnteringAnimation;
+};
 
 const PROVIDER_LABELS: Record<SupportedExampleProvider, string> = {
   apple: 'Apple MapKit',
@@ -53,6 +61,17 @@ const PROVIDER_LABELS: Record<SupportedExampleProvider, string> = {
 };
 
 const SUPPORTED_MAP_PROVIDERS = getSupportedMapProviders();
+
+const ANIMATION_OPTIONS: AnimationOption[] = [
+  { id: 'system', label: 'System', value: 'system' },
+  { id: 'fade', label: 'Fade', value: { preset: 'fade', duration: 180 } },
+  {
+    id: 'fade-scale',
+    label: 'Scale',
+    value: { preset: 'fade-scale', duration: 180 },
+  },
+  { id: 'none', label: 'Off', value: false },
+];
 
 function getSupportedMapProviders(): SupportedExampleProvider[] {
   switch (Platform.OS) {
@@ -239,9 +258,11 @@ type ScenarioDockProps = {
   expanded: boolean;
   mapTypeLabel: MapType;
   providerLabel: string;
+  animationOptionId: AnimationOptionId;
   canCycleProvider: boolean;
   onToggleExpanded: () => void;
   onSelect: (index: number) => void;
+  onSelectAnimation: (animation: AnimationOptionId) => void;
   onAnimateCamera: () => void;
   onGetCamera: () => void;
   onCycleMapType: () => void;
@@ -254,9 +275,11 @@ const ScenarioDock = memo(function ScenarioDock({
   expanded,
   mapTypeLabel,
   providerLabel,
+  animationOptionId,
   canCycleProvider,
   onToggleExpanded,
   onSelect,
+  onSelectAnimation,
   onAnimateCamera,
   onGetCamera,
   onCycleMapType,
@@ -310,6 +333,32 @@ const ScenarioDock = memo(function ScenarioDock({
           <Text style={styles.dockDescription}>{scenario.description}</Text>
 
           <View style={styles.divider} />
+
+          <View style={styles.controlGroup}>
+            <Text style={styles.controlLabel}>Entering animation</Text>
+            <View style={styles.optionRow}>
+              {ANIMATION_OPTIONS.map((option) => (
+                <ScalePressable
+                  key={option.id}
+                  onPress={() => onSelectAnimation(option.id)}
+                  style={[
+                    styles.optionChip,
+                    option.id === animationOptionId && styles.optionChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.optionChipText,
+                      option.id === animationOptionId &&
+                        styles.optionChipTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </ScalePressable>
+              ))}
+            </View>
+          </View>
 
           <View style={styles.actionRow}>
             <ScalePressable
@@ -383,6 +432,7 @@ type MapSceneProps = {
   provider: SupportedExampleProvider;
   mapType: MapType;
   mapPadding?: EdgePadding;
+  animationOption: AnimationOption;
   onMapReady: () => void;
   onClusterPress: (markerIds: string[], coordinate: Coordinate) => void;
   onMarkerPress: (id: string) => void;
@@ -399,6 +449,7 @@ const MapScene = memo(
       provider,
       mapType,
       mapPadding,
+      animationOption,
       onMapReady,
       onClusterPress,
       onMarkerPress,
@@ -419,9 +470,9 @@ const MapScene = memo(
       showsCompass: scenario.advanced?.showsCompass,
       customMapStyle: scenario.advanced?.customMapStyle,
       mapPadding,
-      markerEnteringAnimation: { preset: 'fade-scale', duration: 180 } as const,
+      markerEnteringAnimation: animationOption.value,
       clusterEnteringAnimation: scenario.advanced?.clusteringEnabled
-        ? ({ preset: 'fade', duration: 160 } as const)
+        ? animationOption.value
         : undefined,
       markers: scenario.markers,
       polylines: scenario.polylines,
@@ -442,7 +493,7 @@ const MapScene = memo(
       return (
         <MapView
           ref={ref}
-          key={scenario.id}
+          key={`${scenario.id}:${animationOption.id}:apple`}
           {...commonMapProps}
           provider="apple"
           showsScale={scenario.advanced?.showsScale}
@@ -453,7 +504,7 @@ const MapScene = memo(
     return (
       <MapView
         ref={ref}
-        key={scenario.id}
+        key={`${scenario.id}:${animationOption.id}:google`}
         {...commonMapProps}
         provider="google"
       />
@@ -530,12 +581,14 @@ export default function App() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [mapTypeIndex, setMapTypeIndex] = useState(0);
   const [providerIndex, setProviderIndex] = useState(0);
+  const [animationOptionIndex, setAnimationOptionIndex] = useState(2);
   const [status, setStatus] = useState('Waiting for map...');
   const [mapReady, setMapReady] = useState(false);
   const [dockExpanded, setDockExpanded] = useState(false);
 
   const scenario = MAP_SCENARIOS[scenarioIndex];
   const provider = SUPPORTED_MAP_PROVIDERS[providerIndex] ?? 'google';
+  const animationOption = ANIMATION_OPTIONS[animationOptionIndex];
   const showsScale = scenario.advanced?.showsScale === true;
   const showsCompass = scenario.advanced?.showsCompass === true;
   const mapPadding = useMemo(
@@ -604,6 +657,22 @@ export default function App() {
     setDockExpanded((current) => !current);
   }, []);
 
+  const selectAnimation = useCallback(
+    (animation: AnimationOptionId) => {
+      const nextIndex = ANIMATION_OPTIONS.findIndex(
+        (option) => option.id === animation,
+      );
+      if (nextIndex < 0 || nextIndex === animationOptionIndex) {
+        return;
+      }
+
+      setAnimationOptionIndex(nextIndex);
+      setMapReady(false);
+      setStatus(`Animation · ${ANIMATION_OPTIONS[nextIndex].label}`);
+    },
+    [animationOptionIndex],
+  );
+
   const handleMarkerPress = useCallback((id: string) => {
     setStatus(`Marker · ${id}`);
   }, []);
@@ -666,6 +735,7 @@ export default function App() {
         provider={provider}
         mapType={MAP_TYPES[mapTypeIndex]}
         mapPadding={mapPadding}
+        animationOption={animationOption}
         onMapReady={handleMapReady}
         onClusterPress={handleClusterPress}
         onMarkerPress={handleMarkerPress}
@@ -688,9 +758,11 @@ export default function App() {
         expanded={dockExpanded}
         mapTypeLabel={MAP_TYPES[mapTypeIndex]}
         providerLabel={PROVIDER_LABELS[provider]}
+        animationOptionId={animationOption.id}
         canCycleProvider={SUPPORTED_MAP_PROVIDERS.length > 1}
         onToggleExpanded={toggleDockExpanded}
         onSelect={selectScenario}
+        onSelectAnimation={selectAnimation}
         onAnimateCamera={handleAnimateCamera}
         onGetCamera={handleGetCamera}
         onCycleMapType={cycleMapType}
@@ -857,6 +929,42 @@ const styles = StyleSheet.create({
   },
   dockExpanded: {
     gap: 12,
+  },
+  controlGroup: {
+    gap: 8,
+  },
+  controlLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textMuted,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionChip: {
+    flexGrow: 1,
+    minWidth: 72,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: palette.border,
+    alignItems: 'center',
+  },
+  optionChipActive: {
+    backgroundColor: palette.accentSoft,
+    borderColor: 'rgba(59, 130, 246, 0.45)',
+  },
+  optionChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textSecondary,
+  },
+  optionChipTextActive: {
+    color: palette.text,
   },
   iconButton: {
     width: 32,
