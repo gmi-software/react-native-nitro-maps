@@ -10,9 +10,20 @@ import kotlin.math.roundToInt
 /** A single display element: an individual marker or a cluster badge. */
 internal sealed interface ClusterElement {
   val diffKey: String
+  val renderVersion: Long
 
   data class Single(val descriptor: MarkerDescriptor) : ClusterElement {
     override val diffKey: String get() = "s:" + descriptor.id
+    override val renderVersion: Long = renderSignature(
+      "single",
+      descriptor.id,
+      descriptor.coordinate.latitude,
+      descriptor.coordinate.longitude,
+      descriptor.title,
+      descriptor.subtitle,
+      descriptor.draggable,
+      descriptor.clusterable,
+    )
   }
 
   data class Cluster(
@@ -23,7 +34,27 @@ internal sealed interface ClusterElement {
     val bounds: LatLngBounds,
   ) : ClusterElement {
     override val diffKey: String get() = "c:$key"
+    override val renderVersion: Long = renderSignature(
+      "cluster",
+      key,
+      position.latitude,
+      position.longitude,
+      count,
+      memberIds.sorted(),
+      bounds.southwest.latitude,
+      bounds.southwest.longitude,
+      bounds.northeast.latitude,
+      bounds.northeast.longitude,
+    )
   }
+}
+
+private fun renderSignature(vararg parts: Any?): Long {
+  var hash = -3750763034362895579L
+  for (part in parts) {
+    hash = 1099511628211L * hash + (part?.hashCode()?.toLong() ?: 0L)
+  }
+  return hash
 }
 
 /**
