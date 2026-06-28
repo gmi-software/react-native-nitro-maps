@@ -45,6 +45,18 @@ extension MarkerDescriptor {
     if let opacity {
       hasher.combine(opacity)
     }
+    if let enteringAnimation {
+      hasher.combine(enteringAnimation.kind)
+      if let duration = enteringAnimation.duration {
+        hasher.combine(duration)
+      }
+      if let delay = enteringAnimation.delay {
+        hasher.combine(delay)
+      }
+      if let reduceMotion = enteringAnimation.reduceMotion {
+        hasher.combine(reduceMotion)
+      }
+    }
     return hasher.finalize()
   }
 }
