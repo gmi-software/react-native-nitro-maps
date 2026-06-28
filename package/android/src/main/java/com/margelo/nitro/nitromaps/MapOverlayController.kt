@@ -23,7 +23,7 @@ class MapOverlayController(
   private val context: ThemedReactContext,
 ) {
   private val markers = HashMap<String, Marker>()
-  private val markerVersions = HashMap<String, Int>()
+  private val markerVersions = HashMap<String, Long>()
   private val clusterByKey = HashMap<String, ClusterElement.Cluster>()
   private val polylines = LinkedHashMap<String, Polyline>()
   private val polygons = LinkedHashMap<String, Polygon>()
@@ -384,6 +384,9 @@ class MapOverlayController(
 
   private fun applyMarkersSync(descriptors: Array<MarkerDescriptor>) {
     val map = googleMap ?: return
+    refreshGeneration += 1
+    cancelIdleRefresh()
+    cancelLiveRefresh()
     markerVersions.clear()
     clusterByKey.clear()
     reconcile(

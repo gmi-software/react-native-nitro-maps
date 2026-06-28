@@ -10,21 +10,20 @@ import kotlin.math.roundToInt
 /** A single display element: an individual marker or a cluster badge. */
 internal sealed interface ClusterElement {
   val diffKey: String
-  val renderVersion: Int
+  val renderVersion: Long
 
   data class Single(val descriptor: MarkerDescriptor) : ClusterElement {
     override val diffKey: String get() = "s:" + descriptor.id
-    override val renderVersion: Int get() {
-      var hash = "single".hashCode()
-      hash = 31 * hash + descriptor.id.hashCode()
-      hash = 31 * hash + descriptor.coordinate.latitude.hashCode()
-      hash = 31 * hash + descriptor.coordinate.longitude.hashCode()
-      hash = 31 * hash + (descriptor.title?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.subtitle?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.draggable?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.clusterable?.hashCode() ?: 0)
-      return hash
-    }
+    override val renderVersion: Long = renderSignature(
+      "single",
+      descriptor.id,
+      descriptor.coordinate.latitude,
+      descriptor.coordinate.longitude,
+      descriptor.title,
+      descriptor.subtitle,
+      descriptor.draggable,
+      descriptor.clusterable,
+    )
   }
 
   data class Cluster(
@@ -35,22 +34,27 @@ internal sealed interface ClusterElement {
     val bounds: LatLngBounds,
   ) : ClusterElement {
     override val diffKey: String get() = "c:$key"
-    override val renderVersion: Int get() {
-      var hash = "cluster".hashCode()
-      hash = 31 * hash + key.hashCode()
-      hash = 31 * hash + position.latitude.hashCode()
-      hash = 31 * hash + position.longitude.hashCode()
-      hash = 31 * hash + count.hashCode()
-      for (id in memberIds.sorted()) {
-        hash = 31 * hash + id.hashCode()
-      }
-      hash = 31 * hash + bounds.southwest.latitude.hashCode()
-      hash = 31 * hash + bounds.southwest.longitude.hashCode()
-      hash = 31 * hash + bounds.northeast.latitude.hashCode()
-      hash = 31 * hash + bounds.northeast.longitude.hashCode()
-      return hash
-    }
+    override val renderVersion: Long = renderSignature(
+      "cluster",
+      key,
+      position.latitude,
+      position.longitude,
+      count,
+      memberIds.sorted(),
+      bounds.southwest.latitude,
+      bounds.southwest.longitude,
+      bounds.northeast.latitude,
+      bounds.northeast.longitude,
+    )
   }
+}
+
+private fun renderSignature(vararg parts: Any?): Long {
+  var hash = -3750763034362895579L
+  for (part in parts) {
+    hash = 1099511628211L * hash + (part?.hashCode()?.toLong() ?: 0L)
+  }
+  return hash
 }
 
 /**
