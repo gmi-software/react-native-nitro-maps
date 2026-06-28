@@ -2,6 +2,7 @@ import { ConfigPlugin, IOSConfig, withInfoPlist } from '@expo/config-plugins';
 
 import {
   type NitroMapsPluginOptions,
+  requiresForegroundLocation,
   wantsAlwaysLocation,
   wantsWhenInUseLocation,
 } from './types';
@@ -12,10 +13,13 @@ export function applyLocationPermissionsToInfoPlist(
   infoPlist: InfoPlist,
   options: NitroMapsPluginOptions,
 ): InfoPlist {
-  if (wantsWhenInUseLocation(options)) {
-    infoPlist.NSLocationWhenInUseUsageDescription = options.locationPermission;
+  if (requiresForegroundLocation(options)) {
+    infoPlist.NSLocationWhenInUseUsageDescription = wantsWhenInUseLocation(
+      options,
+    )
+      ? options.locationPermission
+      : options.locationAlwaysPermission;
   }
-
   if (wantsAlwaysLocation(options)) {
     infoPlist.NSLocationAlwaysAndWhenInUseUsageDescription =
       options.locationAlwaysPermission;
@@ -28,8 +32,7 @@ export const withNitroMapsIos: ConfigPlugin<NitroMapsPluginOptions> = (
   config,
   options = {},
 ) => {
-  // googleMapsApiKey is intentionally unused on iOS: MapKit needs no key (#2).
-  if (!wantsWhenInUseLocation(options) && !wantsAlwaysLocation(options)) {
+  if (!requiresForegroundLocation(options)) {
     return config;
   }
 

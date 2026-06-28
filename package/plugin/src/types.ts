@@ -29,3 +29,9 @@ export function wantsAlwaysLocation(
 ): options is NitroMapsPluginOptions & { locationAlwaysPermission: string } {
   return typeof options.locationAlwaysPermission === 'string';
 }
+
+export function requiresForegroundLocation(
+  options: NitroMapsPluginOptions,
+): boolean {
+  return wantsWhenInUseLocation(options) || wantsAlwaysLocation(options);
+}

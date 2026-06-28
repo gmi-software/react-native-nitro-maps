@@ -50,7 +50,7 @@ export default {
 After `expo prebuild`, native projects have the required keys and permissions without manual edits.
 
 > **Google Maps API key:** Use either this plugin's `googleMapsApiKey` option or Expo's built-in `android.config.googleMaps.apiKey` — pick one source, not both.
-
+>
 > **EAS Secrets:** Store `GOOGLE_MAPS_API_KEY` as an EAS secret and reference it via `process.env.GOOGLE_MAPS_API_KEY` in `app.config.js`.
 
 See [docs/expo-setup.md](docs/expo-setup.md) for a full Expo SDK 56 setup walkthrough.

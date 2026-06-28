@@ -53,7 +53,7 @@ Omitting `googleMapsApiKey` does not fail prebuild. Android maps will not render
 
 Create a `.env` file (see `example/.env.example`):
 
-```
+```dotenv
 GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 ```
 

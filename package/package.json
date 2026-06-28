@@ -30,7 +30,8 @@
   ],
   "scripts": {
     "build": "bob build && bun run build:plugin",
-    "build:plugin": "tsc --project tsconfig.plugin.json",
+    "clean:plugin": "rm -rf plugin/build",
+    "build:plugin": "bun run clean:plugin && tsc --project tsconfig.plugin.json",
     "prepack": "bun run build",
     "test": "jest",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.plugin.json --noEmit",

@@ -6,8 +6,8 @@ import {
 
 import {
   type NitroMapsPluginOptions,
+  requiresForegroundLocation,
   wantsAlwaysLocation,
-  wantsWhenInUseLocation,
 } from './types';
 
 type AndroidManifest = AndroidConfig.Manifest.AndroidManifest;
@@ -37,7 +37,7 @@ export function getLocationPermissions(
 ): string[] {
   const permissions: string[] = [];
 
-  if (wantsWhenInUseLocation(options)) {
+  if (requiresForegroundLocation(options)) {
     permissions.push(
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.ACCESS_COARSE_LOCATION',
