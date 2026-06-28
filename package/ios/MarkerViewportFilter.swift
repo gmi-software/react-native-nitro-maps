@@ -36,6 +36,10 @@ enum MarkerViewportFilter {
       hasher.combine(marker.subtitle)
       hasher.combine(marker.draggable)
       hasher.combine(marker.clusterable)
+      hasher.combine(marker.enteringAnimation?.kind.stringValue)
+      hasher.combine(marker.enteringAnimation?.duration)
+      hasher.combine(marker.enteringAnimation?.delay)
+      hasher.combine(marker.enteringAnimation?.reduceMotion?.stringValue)
     }
     return hasher.finalize()
   }

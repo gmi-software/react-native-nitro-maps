@@ -4,10 +4,10 @@ import type { Camera } from './camera';
 import type { Coordinate } from './coordinate';
 import type {
   CircleDescriptor,
-  MarkerDescriptor,
   PolygonDescriptor,
   PolylineDescriptor,
 } from '../native/specs/overlays';
+import type { MarkerDescriptor, OverlayEnteringAnimation } from './overlays';
 import type { EdgePadding, Region } from './region';
 
 /**
@@ -16,9 +16,14 @@ import type { EdgePadding, Region } from './region';
 export type MapType = 'standard' | 'satellite' | 'hybrid' | 'terrain';
 
 /**
- * Props for the root map view component.
+ * Native rendering backend for the map view.
  */
-export interface MapViewProps {
+export type MapProvider = 'apple' | 'google' | 'openstreetmap' | 'mapbox';
+
+/**
+ * Props shared by all map providers.
+ */
+interface BaseMapViewProps {
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 
@@ -45,15 +50,6 @@ export interface MapViewProps {
 
   /** Whether to show the compass control. */
   showsCompass?: boolean;
-
-  /** Whether to show the scale control (iOS only). */
-  showsScale?: boolean;
-
-  /** Custom map style as a JSON string (full support on Android; curated subset on iOS 16+). */
-  customMapStyle?: string;
-
-  /** Whether to cluster nearby markers. */
-  clusteringEnabled?: boolean;
 
   /** Padding applied to map edges, in density-independent pixels. */
   mapPadding?: EdgePadding;
@@ -105,4 +101,107 @@ export interface MapViewProps {
 
   /** Called when a marker cluster is pressed. */
   onClusterPress?: (markerIds: string[], coordinate: Coordinate) => void;
+
+  /** Default entering animation for marker overlays. */
+  markerEnteringAnimation?: OverlayEnteringAnimation;
 }
+
+interface ExistingDefaultProviderProps extends BaseMapViewProps {
+  /**
+   * Optional provider. When omitted, iOS uses Apple MapKit and Android uses
+   * Google Maps.
+   */
+  provider?: undefined;
+
+  /** Google Map IDs require the explicit Google provider. */
+  googleMapId?: never;
+
+  /** Whether to show the scale control (supported by Apple MapKit). */
+  showsScale?: boolean;
+
+  /** Custom map style as a JSON string (full support on Google Maps; curated subset on Apple MapKit iOS 16+). */
+  customMapStyle?: string;
+
+  /** Whether to cluster nearby markers. */
+  clusteringEnabled?: boolean;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimation;
+}
+
+interface AppleMapViewProps extends BaseMapViewProps {
+  provider: 'apple';
+
+  /** Google Map IDs are only supported by the Google provider. */
+  googleMapId?: never;
+
+  /** Whether to show the scale control. */
+  showsScale?: boolean;
+
+  /** Custom map style as a JSON string. Apple MapKit applies a curated subset on iOS 16+. */
+  customMapStyle?: string;
+
+  /** Whether to cluster nearby markers. */
+  clusteringEnabled?: boolean;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimation;
+}
+
+interface GoogleMapViewProps extends BaseMapViewProps {
+  provider: 'google';
+
+  /** Google Cloud Map ID for cloud-based Google Maps styling. */
+  googleMapId?: string;
+
+  /** Google Maps SDK has no native scale control. */
+  showsScale?: never;
+
+  /** Custom Google Maps style JSON. */
+  customMapStyle?: string;
+
+  /** Whether to cluster nearby markers. */
+  clusteringEnabled?: boolean;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimation;
+}
+
+interface OpenStreetMapViewProps extends BaseMapViewProps {
+  provider: 'openstreetmap';
+  googleMapId?: never;
+  showsScale?: never;
+  customMapStyle?: never;
+  clusteringEnabled?: never;
+  clusterEnteringAnimation?: never;
+}
+
+interface MapboxMapViewProps extends BaseMapViewProps {
+  provider: 'mapbox';
+  googleMapId?: never;
+  showsScale?: never;
+  customMapStyle?: never;
+  clusteringEnabled?: never;
+  clusterEnteringAnimation?: never;
+}
+
+export type MapViewPropsForProvider<Provider extends MapProvider> =
+  Provider extends 'apple'
+    ? AppleMapViewProps
+    : Provider extends 'google'
+      ? GoogleMapViewProps
+      : Provider extends 'openstreetmap'
+        ? OpenStreetMapViewProps
+        : Provider extends 'mapbox'
+          ? MapboxMapViewProps
+          : never;
+
+/**
+ * Props for the root map view component.
+ */
+export type MapViewProps =
+  | ExistingDefaultProviderProps
+  | AppleMapViewProps
+  | GoogleMapViewProps
+  | OpenStreetMapViewProps
+  | MapboxMapViewProps;

@@ -10,6 +10,7 @@ final class MapClusterAnnotation: NSObject, MKAnnotation {
   var memberIds: [String]
   /// Region that frames this cluster's members, used for tap-to-zoom.
   var region: MKCoordinateRegion
+  let enteringAnimation: ResolvedOverlayEnteringAnimation
 
   @objc dynamic var coordinate: CLLocationCoordinate2D
 
@@ -18,13 +19,15 @@ final class MapClusterAnnotation: NSObject, MKAnnotation {
     coordinate: CLLocationCoordinate2D,
     count: Int,
     memberIds: [String],
-    region: MKCoordinateRegion
+    region: MKCoordinateRegion,
+    enteringAnimation: ResolvedOverlayEnteringAnimation
   ) {
     self.id = id
     self.coordinate = coordinate
     self.count = count
     self.memberIds = memberIds
     self.region = region
+    self.enteringAnimation = enteringAnimation
   }
 
   func update(

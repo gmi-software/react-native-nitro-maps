@@ -16,6 +16,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type AccessibilityRole,
+  type AccessibilityState,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -38,12 +40,51 @@ import {
   MapView,
   type Coordinate,
   type EdgePadding,
+  type MapProvider,
   type MapType,
   type MapViewRef,
+  type OverlayEnteringAnimation,
 } from 'react-native-nitro-maps';
 import { MAP_SCENARIOS, type MapScenario } from './examples';
 
 const MAP_TYPES: MapType[] = ['standard', 'satellite', 'hybrid'];
+type SupportedExampleProvider = Extract<MapProvider, 'apple' | 'google'>;
+type AnimationOptionId = 'system' | 'fade' | 'fade-scale' | 'none';
+
+type AnimationOption = {
+  id: AnimationOptionId;
+  label: string;
+  value: OverlayEnteringAnimation;
+};
+
+const PROVIDER_LABELS: Record<SupportedExampleProvider, string> = {
+  apple: 'Apple MapKit',
+  google: 'Google Maps',
+};
+
+const SUPPORTED_MAP_PROVIDERS = getSupportedMapProviders();
+
+const ANIMATION_OPTIONS: AnimationOption[] = [
+  { id: 'system', label: 'System', value: 'system' },
+  { id: 'fade', label: 'Fade', value: { preset: 'fade', duration: 180 } },
+  {
+    id: 'fade-scale',
+    label: 'Scale',
+    value: { preset: 'fade-scale', duration: 180 },
+  },
+  { id: 'none', label: 'Off', value: false },
+];
+
+function getSupportedMapProviders(): SupportedExampleProvider[] {
+  switch (Platform.OS) {
+    case 'ios':
+      return ['apple', 'google'];
+    case 'android':
+      return ['google'];
+    default:
+      return [];
+  }
+}
 
 const MAP_TYPE_LABELS: Record<MapType, string> = {
   standard: 'Standard',
@@ -102,6 +143,9 @@ type ScalePressableProps = {
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
   hitSlop?: number;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
+  accessibilityLabel?: string;
 };
 
 const ScalePressable = memo(function ScalePressable({
@@ -109,6 +153,9 @@ const ScalePressable = memo(function ScalePressable({
   style,
   children,
   hitSlop,
+  accessibilityRole,
+  accessibilityState,
+  accessibilityLabel,
 }: ScalePressableProps) {
   const scale = useSharedValue(1);
 
@@ -119,6 +166,9 @@ const ScalePressable = memo(function ScalePressable({
   return (
     <AnimatedPressable
       hitSlop={hitSlop}
+      accessibilityRole={accessibilityRole}
+      accessibilityState={accessibilityState}
+      accessibilityLabel={accessibilityLabel}
       style={[style, animatedStyle]}
       onPress={onPress}
       onPressIn={() => {
@@ -185,18 +235,26 @@ const ScenarioChip = memo(function ScenarioChip({
   onPress,
 }: ScenarioChipProps) {
   return (
-    <Animated.View layout={LinearTransition.springify().damping(20).stiffness(260)}>
+    <Animated.View
+      layout={LinearTransition.springify().damping(20).stiffness(260)}
+    >
       <ScalePressable
         onPress={onPress}
         style={[styles.scenarioChip, active && styles.scenarioChipActive]}
       >
         <Text
-          style={[styles.scenarioChipIndex, active && styles.scenarioChipIndexActive]}
+          style={[
+            styles.scenarioChipIndex,
+            active && styles.scenarioChipIndexActive,
+          ]}
         >
           {index + 1}
         </Text>
         <Text
-          style={[styles.scenarioChipText, active && styles.scenarioChipTextActive]}
+          style={[
+            styles.scenarioChipText,
+            active && styles.scenarioChipTextActive,
+          ]}
         >
           {label}
         </Text>
@@ -210,11 +268,16 @@ type ScenarioDockProps = {
   scenarioIndex: number;
   expanded: boolean;
   mapTypeLabel: MapType;
+  providerLabel: string;
+  animationOptionId: AnimationOptionId;
+  canCycleProvider: boolean;
   onToggleExpanded: () => void;
   onSelect: (index: number) => void;
+  onSelectAnimation: (animation: AnimationOptionId) => void;
   onAnimateCamera: () => void;
   onGetCamera: () => void;
   onCycleMapType: () => void;
+  onCycleProvider: () => void;
 };
 
 const ScenarioDock = memo(function ScenarioDock({
@@ -222,11 +285,16 @@ const ScenarioDock = memo(function ScenarioDock({
   scenarioIndex,
   expanded,
   mapTypeLabel,
+  providerLabel,
+  animationOptionId,
+  canCycleProvider,
   onToggleExpanded,
   onSelect,
+  onSelectAnimation,
   onAnimateCamera,
   onGetCamera,
   onCycleMapType,
+  onCycleProvider,
 }: ScenarioDockProps) {
   const chevronRotation = useSharedValue(0);
 
@@ -243,14 +311,14 @@ const ScenarioDock = memo(function ScenarioDock({
 
   return (
     <Animated.View
-      entering={FadeInUp.duration(420).delay(120).springify().damping(20).stiffness(220)}
-      layout={LinearTransition.springify().damping(20).stiffness(240)}
+      entering={FadeInUp.delay(120)}
+      layout={LinearTransition.springify()}
       style={[styles.dock, expanded && styles.dockExpandedContainer]}
     >
       {expanded ? (
         <Animated.View
-          entering={FadeInDown.duration(260).springify().damping(20).stiffness(260)}
-          exiting={FadeOut.duration(160)}
+          entering={FadeInDown.springify()}
+          exiting={FadeOut.springify()}
           style={styles.dockExpanded}
         >
           <View style={styles.dockHeader}>
@@ -262,8 +330,14 @@ const ScenarioDock = memo(function ScenarioDock({
                 {scenario.name}
               </Text>
             </View>
-            <ScalePressable onPress={onToggleExpanded} hitSlop={8} style={styles.iconButton}>
-              <Animated.Text style={[styles.iconButtonText, chevronStyle]}>▴</Animated.Text>
+            <ScalePressable
+              onPress={onToggleExpanded}
+              hitSlop={8}
+              style={styles.iconButton}
+            >
+              <Animated.Text style={[styles.iconButtonText, chevronStyle]}>
+                ▴
+              </Animated.Text>
             </ScalePressable>
           </View>
 
@@ -271,8 +345,42 @@ const ScenarioDock = memo(function ScenarioDock({
 
           <View style={styles.divider} />
 
+          <View style={styles.controlGroup}>
+            <Text style={styles.controlLabel}>Entering animation</Text>
+            <View style={styles.optionRow}>
+              {ANIMATION_OPTIONS.map((option) => (
+                <ScalePressable
+                  key={option.id}
+                  onPress={() => onSelectAnimation(option.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: option.id === animationOptionId,
+                  }}
+                  accessibilityLabel={`${option.label} entering animation`}
+                  style={[
+                    styles.optionChip,
+                    option.id === animationOptionId && styles.optionChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.optionChipText,
+                      option.id === animationOptionId &&
+                        styles.optionChipTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </ScalePressable>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.actionRow}>
-            <ScalePressable onPress={onAnimateCamera} style={styles.actionButton}>
+            <ScalePressable
+              onPress={onAnimateCamera}
+              style={styles.actionButton}
+            >
               <Text style={styles.actionButtonIcon}>↻</Text>
               <Text style={styles.actionButtonText}>Animate</Text>
             </ScalePressable>
@@ -289,6 +397,15 @@ const ScenarioDock = memo(function ScenarioDock({
                 {MAP_TYPE_LABELS[mapTypeLabel]}
               </Text>
             </ScalePressable>
+            {canCycleProvider ? (
+              <ScalePressable
+                onPress={onCycleProvider}
+                style={styles.actionButton}
+              >
+                <Text style={styles.actionButtonIcon}>⌁</Text>
+                <Text style={styles.actionButtonText}>{providerLabel}</Text>
+              </ScalePressable>
+            ) : null}
           </View>
         </Animated.View>
       ) : null}
@@ -311,8 +428,14 @@ const ScenarioDock = memo(function ScenarioDock({
           ))}
         </ScrollView>
         {!expanded ? (
-          <ScalePressable onPress={onToggleExpanded} hitSlop={8} style={styles.iconButton}>
-            <Animated.Text style={[styles.iconButtonText, chevronStyle]}>▴</Animated.Text>
+          <ScalePressable
+            onPress={onToggleExpanded}
+            hitSlop={8}
+            style={styles.iconButton}
+          >
+            <Animated.Text style={[styles.iconButtonText, chevronStyle]}>
+              ▴
+            </Animated.Text>
           </ScalePressable>
         ) : null}
       </View>
@@ -322,8 +445,10 @@ const ScenarioDock = memo(function ScenarioDock({
 
 type MapSceneProps = {
   scenario: MapScenario;
+  provider: SupportedExampleProvider;
   mapType: MapType;
   mapPadding?: EdgePadding;
+  animationOption: AnimationOption;
   onMapReady: () => void;
   onClusterPress: (markerIds: string[], coordinate: Coordinate) => void;
   onMarkerPress: (id: string) => void;
@@ -337,8 +462,10 @@ const MapScene = memo(
   forwardRef<MapViewRef, MapSceneProps>(function MapScene(
     {
       scenario,
+      provider,
       mapType,
       mapPadding,
+      animationOption,
       onMapReady,
       onClusterPress,
       onMarkerPress,
@@ -349,33 +476,53 @@ const MapScene = memo(
     },
     ref,
   ) {
+    const commonMapProps = {
+      style: styles.map,
+      mapType,
+      region: scenario.region,
+      clusteringEnabled: scenario.advanced?.clusteringEnabled,
+      showsUserLocation: scenario.advanced?.showsUserLocation,
+      followsUserLocation: scenario.advanced?.followsUserLocation,
+      showsCompass: scenario.advanced?.showsCompass,
+      customMapStyle: scenario.advanced?.customMapStyle,
+      mapPadding,
+      markerEnteringAnimation: animationOption.value,
+      clusterEnteringAnimation: scenario.advanced?.clusteringEnabled
+        ? animationOption.value
+        : undefined,
+      markers: scenario.markers,
+      polylines: scenario.polylines,
+      polygons: scenario.polygons,
+      circles: scenario.circles,
+      onMapReady,
+      onClusterPress,
+      onMarkerPress,
+      onMarkerDragEnd,
+      onPress,
+      onLongPress,
+      onPolylinePress: onOverlayPress,
+      onPolygonPress: onOverlayPress,
+      onCirclePress: onOverlayPress,
+    };
+
+    if (provider === 'apple') {
+      return (
+        <MapView
+          ref={ref}
+          key={`${scenario.id}:${animationOption.id}:apple`}
+          {...commonMapProps}
+          provider="apple"
+          showsScale={scenario.advanced?.showsScale}
+        />
+      );
+    }
+
     return (
       <MapView
         ref={ref}
-        key={scenario.id}
-        style={styles.map}
-        mapType={mapType}
-        region={scenario.region}
-        clusteringEnabled={scenario.advanced?.clusteringEnabled}
-        showsUserLocation={scenario.advanced?.showsUserLocation}
-        followsUserLocation={scenario.advanced?.followsUserLocation}
-        showsCompass={scenario.advanced?.showsCompass}
-        showsScale={scenario.advanced?.showsScale}
-        customMapStyle={scenario.advanced?.customMapStyle}
-        mapPadding={mapPadding}
-        markers={scenario.markers}
-        polylines={scenario.polylines}
-        polygons={scenario.polygons}
-        circles={scenario.circles}
-        onMapReady={onMapReady}
-        onClusterPress={onClusterPress}
-        onMarkerPress={onMarkerPress}
-        onMarkerDragEnd={onMarkerDragEnd}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        onPolylinePress={onOverlayPress}
-        onPolygonPress={onOverlayPress}
-        onCirclePress={onOverlayPress}
+        key={`${scenario.id}:${animationOption.id}:google`}
+        {...commonMapProps}
+        provider="google"
       />
     );
   }),
@@ -409,7 +556,7 @@ const StatusHeader = memo(function StatusHeader({
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(360).delay(60).springify().damping(20).stiffness(240)}
+      entering={FadeInDown.springify().delay(60)}
       style={[styles.header, showsScale && styles.headerWithScale]}
       pointerEvents="none"
     >
@@ -449,11 +596,15 @@ export default function App() {
   const mapRef = useRef<MapViewRef>(null);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [mapTypeIndex, setMapTypeIndex] = useState(0);
+  const [providerIndex, setProviderIndex] = useState(0);
+  const [animationOptionIndex, setAnimationOptionIndex] = useState(0);
   const [status, setStatus] = useState('Waiting for map...');
   const [mapReady, setMapReady] = useState(false);
   const [dockExpanded, setDockExpanded] = useState(false);
 
   const scenario = MAP_SCENARIOS[scenarioIndex];
+  const provider = SUPPORTED_MAP_PROVIDERS[providerIndex] ?? 'google';
+  const animationOption = ANIMATION_OPTIONS[animationOptionIndex];
   const showsScale = scenario.advanced?.showsScale === true;
   const showsCompass = scenario.advanced?.showsCompass === true;
   const mapPadding = useMemo(
@@ -492,18 +643,51 @@ export default function App() {
     setMapTypeIndex((current) => (current + 1) % MAP_TYPES.length);
   }, []);
 
-  const selectScenario = useCallback((index: number) => {
-    if (index === scenarioIndex) {
-      return;
-    }
-    setScenarioIndex(index);
-    setMapReady(false);
-    setStatus(MAP_SCENARIOS[index].name);
-  }, [scenarioIndex]);
+  const cycleProvider = useCallback(() => {
+    setProviderIndex((current) => {
+      if (SUPPORTED_MAP_PROVIDERS.length <= 1) {
+        setStatus(PROVIDER_LABELS[provider]);
+        return current;
+      }
+
+      const next = (current + 1) % SUPPORTED_MAP_PROVIDERS.length;
+      setMapReady(false);
+      setStatus(PROVIDER_LABELS[SUPPORTED_MAP_PROVIDERS[next] ?? provider]);
+      return next;
+    });
+  }, [provider]);
+
+  const selectScenario = useCallback(
+    (index: number) => {
+      if (index === scenarioIndex) {
+        return;
+      }
+      setScenarioIndex(index);
+      setMapReady(false);
+      setStatus(MAP_SCENARIOS[index].name);
+    },
+    [scenarioIndex],
+  );
 
   const toggleDockExpanded = useCallback(() => {
     setDockExpanded((current) => !current);
   }, []);
+
+  const selectAnimation = useCallback(
+    (animation: AnimationOptionId) => {
+      const nextIndex = ANIMATION_OPTIONS.findIndex(
+        (option) => option.id === animation,
+      );
+      if (nextIndex < 0 || nextIndex === animationOptionIndex) {
+        return;
+      }
+
+      setAnimationOptionIndex(nextIndex);
+      setMapReady(false);
+      setStatus(`Animation · ${ANIMATION_OPTIONS[nextIndex].label}`);
+    },
+    [animationOptionIndex],
+  );
 
   const handleMarkerPress = useCallback((id: string) => {
     setStatus(`Marker · ${id}`);
@@ -535,7 +719,10 @@ export default function App() {
     setMapReady(true);
     setStatus(scenario.name);
 
-    if (scenario.advanced?.fitToCoordinatesOnReady && scenario.markers != null) {
+    if (
+      scenario.advanced?.fitToCoordinatesOnReady &&
+      scenario.markers != null
+    ) {
       mapRef.current?.fitToCoordinates(
         scenario.markers.map((marker) => marker.coordinate),
         mapPadding,
@@ -561,8 +748,10 @@ export default function App() {
       <MapScene
         ref={mapRef}
         scenario={scenario}
+        provider={provider}
         mapType={MAP_TYPES[mapTypeIndex]}
         mapPadding={mapPadding}
+        animationOption={animationOption}
         onMapReady={handleMapReady}
         onClusterPress={handleClusterPress}
         onMarkerPress={handleMarkerPress}
@@ -584,11 +773,16 @@ export default function App() {
         scenarioIndex={scenarioIndex}
         expanded={dockExpanded}
         mapTypeLabel={MAP_TYPES[mapTypeIndex]}
+        providerLabel={PROVIDER_LABELS[provider]}
+        animationOptionId={animationOption.id}
+        canCycleProvider={SUPPORTED_MAP_PROVIDERS.length > 1}
         onToggleExpanded={toggleDockExpanded}
         onSelect={selectScenario}
+        onSelectAnimation={selectAnimation}
         onAnimateCamera={handleAnimateCamera}
         onGetCamera={handleGetCamera}
         onCycleMapType={cycleMapType}
+        onCycleProvider={cycleProvider}
       />
       <StatusBar style="light" />
     </View>
@@ -751,6 +945,42 @@ const styles = StyleSheet.create({
   },
   dockExpanded: {
     gap: 12,
+  },
+  controlGroup: {
+    gap: 8,
+  },
+  controlLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textMuted,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionChip: {
+    flexGrow: 1,
+    minWidth: 72,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: palette.border,
+    alignItems: 'center',
+  },
+  optionChipActive: {
+    backgroundColor: palette.accentSoft,
+    borderColor: 'rgba(59, 130, 246, 0.45)',
+  },
+  optionChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.textSecondary,
+  },
+  optionChipTextActive: {
+    color: palette.text,
   },
   iconButton: {
     width: 32,

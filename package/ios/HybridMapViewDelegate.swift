@@ -1,9 +1,9 @@
 import MapKit
 import UIKit
 
-/// Delegate and gesture handler for `HybridMapView`'s underlying `MKMapView`.
+/// Delegate and gesture handler for the Apple MapKit provider adapter.
 final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-  weak var parent: HybridMapView?
+  weak var parent: AppleMapProviderAdapter?
 
   func installGestureRecognizers(on mapView: MKMapView) {
     let tapRecognizer = UITapGestureRecognizer(
@@ -74,6 +74,7 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
     parent?.stopLiveClustering()
     parent?.notifyRegionChange(complete: true)
+    parent?.endProgrammaticRegionChangeIfNeeded()
   }
 
   func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
@@ -118,17 +119,20 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
 
   func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
     for view in views {
-      // MKMarkerAnnotationView handles its own drop animation; only fade in cluster badges.
-      guard view.annotation is MapClusterAnnotation else {
-        continue
-      }
-      view.alpha = 0
-      UIView.animate(
-        withDuration: 0.16,
-        delay: 0,
-        options: [.allowUserInteraction, .beginFromCurrentState, .curveEaseOut]
-      ) {
-        view.alpha = 1
+      if let marker = view.annotation as? MapMarkerAnnotation,
+         marker.enteringAnimation.kind != .system {
+        OverlayEnteringAnimationResolver.animateAnnotationView(
+          view,
+          animation: marker.enteringAnimation,
+          supportsScale: true
+        )
+      } else if let cluster = view.annotation as? MapClusterAnnotation,
+                cluster.enteringAnimation.kind != .system {
+        OverlayEnteringAnimationResolver.animateAnnotationView(
+          view,
+          animation: cluster.enteringAnimation,
+          supportsScale: true
+        )
       }
     }
   }

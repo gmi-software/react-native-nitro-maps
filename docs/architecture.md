@@ -18,8 +18,10 @@
 │  nitrogen/generated/ (codegen output)             │
 ├─────────────────────────────────────────────────┤
 │  Native Implementation                          │
-│  iOS: HybridMapView.swift → MapKit              │
-│  Android: HybridMapView.kt → Google Maps SDK     │
+│  HybridMapView host → provider adapter          │
+│  iOS: AppleMapProviderAdapter → MapKit          │
+│       GoogleMapProviderAdapter → Google SDK     │
+│  Android: GoogleMapProviderAdapter → Google SDK  │
 │  C++: shared geometry / tile logic (optional)   │
 └─────────────────────────────────────────────────┘
 ```
@@ -43,43 +45,65 @@ react-native-nitro-maps/
 
 ### MapView
 
-The root component, backed by a Nitro HybridView that renders the native map (MapKit on iOS, Google Maps on Android).
+The root component, backed by a Nitro `HybridMapView` host. The host owns a stable container view and delegates map behavior to a provider adapter selected before the native SDK map view is created.
+
+Provider defaults are resolved in the React wrapper:
+
+| Platform | Default provider | Current adapter                                      |
+| -------- | ---------------- | ---------------------------------------------------- |
+| iOS      | `apple`          | `AppleMapProviderAdapter` backed by MapKit           |
+| Android  | `google`         | `GoogleMapProviderAdapter` backed by Google Maps SDK |
+
+The iOS host also supports the explicit `google` provider through `GoogleMapProviderAdapter`. Unsupported explicit providers fail early in JS. Native hosts also reject unsupported providers if one reaches native code unexpectedly. Changing `provider` or `googleMapId` remounts the native view instead of recreating SDK views in place.
+
+### Provider adapters
+
+Provider adapters own SDK-specific view creation, destruction, lifecycle, camera operations, visible-region calculations, map type, gestures, controls, user location, overlays, press events, clustering, and custom styles. `HybridMapView` stores Nitro props and callbacks, installs the selected adapter, and replays the current state into that adapter.
 
 ### Events
 
 Map and overlay callbacks are wired through Nitro listeners on the HybridView. Callbacks receive payloads directly (e.g. `onPress(coordinate)`, `onRegionChange(region)`).
 
-| Callback | Payload | Notes |
-| --- | --- | --- |
-| `onRegionChange` / `onRegionChangeComplete` | `Region` | iOS uses `MKCoordinateRegion` (center + span); Android derives center + deltas from visible `LatLngBounds`. Values agree without rotation/pitch but may diverge when the map is tilted or rotated. |
-| `onPress` / `onLongPress` | `Coordinate` | Map background only; marker taps do not also fire map `onPress`. |
-| `onMapReady` | none | Fires once after the map finishes loading tiles. |
-| `Marker.onPress` / `onDragEnd` | none / `Coordinate` | Dispatched by overlay `id` from native to JS registry. |
-| Overlay `onPress` | none | Polyline/polygon/circle with `onPress` default to `tappable` on native. |
-| `onClusterPress` | `string[]`, `Coordinate` | Fires when a marker cluster is tapped; IDs are member marker overlay ids. |
+| Callback                                    | Payload                  | Notes                                                                                                                                                                                              |
+| ------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onRegionChange` / `onRegionChangeComplete` | `Region`                 | iOS uses `MKCoordinateRegion` (center + span); Android derives center + deltas from visible `LatLngBounds`. Values agree without rotation/pitch but may diverge when the map is tilted or rotated. |
+| `onPress` / `onLongPress`                   | `Coordinate`             | Map background only; marker taps do not also fire map `onPress`.                                                                                                                                   |
+| `onMapReady`                                | none                     | Fires once after the map finishes loading tiles.                                                                                                                                                   |
+| `Marker.onPress` / `onDragEnd`              | none / `Coordinate`      | Dispatched by overlay `id` from native to JS registry.                                                                                                                                             |
+| Overlay `onPress`                           | none                     | Polyline/polygon/circle with `onPress` default to `tappable` on native.                                                                                                                            |
+| `onClusterPress`                            | `string[]`, `Coordinate` | Fires when a marker cluster is tapped; IDs are member marker overlay ids.                                                                                                                          |
 
 ### Advanced MapView props
 
 | Prop / method | Notes |
 | --- | --- |
+| `provider` | Optional map rendering backend. Defaults to `apple` on iOS and `google` on Android. Explicit unsupported providers throw. |
+| `googleMapId` | Google Cloud Map ID for the `google` provider. It is creation-time SDK configuration, so changing it remounts the native map view. |
 | `clusteringEnabled` | Custom grid-based clustering via `MarkerClusterEngine` on both platforms (viewport-aware, background compute). |
 | `Marker.clusterable` | Opt-out per marker (defaults to `true`). Non-clusterable markers always render individually. |
-| `customMapStyle` | JSON string. Full support on Android via `MapStyleOptions`. iOS 16+ applies a curated subset (POI/transit visibility, elevation) via `MKMapConfiguration`. |
+| `markerEnteringAnimation` / `Marker.enteringAnimation` | Native entering animation for newly added marker render elements. Per-marker values override the map-level default; `false` is an explicit opt-out. |
+| `clusterEnteringAnimation` | Native entering animation for newly added marker-cluster render elements. Available only on providers with clustering support. |
+| `customMapStyle` | JSON string. The `google` provider uses Google Maps JSON styles on iOS and Android. The `apple` provider maps a curated subset to `MKMapConfiguration` on iOS 16+. |
 | `showsUserLocation` / `followsUserLocation` | Toggles the native user-location layer. Host app must request location permission (`NSLocationWhenInUseUsageDescription` on iOS; `ACCESS_FINE_LOCATION` on Android). |
 | `showsCompass` / `showsScale` | Compass on both platforms. Scale is iOS-only (`showsScale` is a no-op on Android). |
 | `mapPadding` | Edge insets in density-independent pixels. Applied via `layoutMargins` (iOS) or `setPadding` (Android). |
 | `fitToCoordinates(coords, padding?, animated?)` | Imperative ref method; fits camera to a set of coordinates with optional padding. |
 
-### Platform gaps (Phase 7)
+### Platform gaps (Phase 8)
 
-- **Custom styles on iOS** — no full Google Maps JSON parity; only a curated subset is mapped to MapKit configuration.
-- **Scale control on Android** — Google Maps SDK has no native scale bar; `showsScale` is ignored.
+- **Provider availability** — `apple` and `google` are implemented on iOS, and `google` is implemented on Android. `openstreetmap` and `mapbox` are planned provider adapters.
+- **Custom styles on Apple MapKit** — no full Google Maps JSON parity; only a curated subset is mapped to MapKit configuration.
+- **Scale control on Google Maps** — Google Maps SDK has no native scale bar; `showsScale` is rejected for the `google` provider.
 - **User location** — the library toggles the layer only; permission prompts and manifest/Info.plist entries are the host app's responsibility.
 - **`followsUserLocation` on Android** — enables the location layer when permitted; continuous camera follow is not built into Google Maps and may require host-app camera updates.
 
 ### Overlay components
 
 `Marker`, `Polyline`, `Polygon`, and `Circle` are overlay components that compose inside `MapView`. Overlay props are collected on the JS side and serialized into descriptor structs passed to the native `HybridMapView` (data-driven architecture).
+
+Marker and marker-cluster entering animations follow the same descriptor model. The public API accepts `false`, `system`, or a serializable preset config; the React wrapper normalizes that into native descriptors. Native provider adapters execute the animation when a marker render element appears in the render diff. Updating animation config for an already retained marker does not restart the animation; the new config is used the next time that marker is added again.
+
+Google Maps SDKs are sensitive to marker animation churn. Large viewport refreshes can add many native marker instances on the main thread, so the Google provider limits how many markers animate per refresh and reveals the rest immediately. This keeps gestures responsive, but very large marker sets may still need clustering, disabled entering animations, or a future provider-specific animation strategy.
 
 ## Data flow (target state)
 
@@ -110,13 +134,14 @@ React callbacks (onPress, onRegionChange, etc.)
 
 ## Technology choices
 
-| Decision | Choice | Rationale |
-| --- | --- | --- |
-| Native bridge | Nitro Modules | JSI-based, type-safe, codegen |
-| Architecture | New Architecture only | Required by Nitro Views |
-| Build tool | react-native-builder-bob | RN community standard |
-| Package manager | Bun workspaces | Fast, modern |
-| Module format | ESM-only | Avoids dual-package hazard |
-| Example app | Expo SDK 56 | New Arch mandatory, good DX |
-| iOS maps | MapKit | Native, no API key needed |
-| Android maps | Google Maps SDK | Industry standard |
+| Decision           | Choice                   | Rationale                              |
+| ------------------ | ------------------------ | -------------------------------------- |
+| Native bridge      | Nitro Modules            | JSI-based, type-safe, codegen          |
+| Architecture       | New Architecture only    | Required by Nitro Views                |
+| Build tool         | react-native-builder-bob | RN community standard                  |
+| Package manager    | Bun workspaces           | Fast, modern                           |
+| Module format      | ESM-only                 | Avoids dual-package hazard             |
+| Example app        | Expo SDK 56              | New Arch mandatory, good DX            |
+| iOS default maps   | MapKit                   | Native, no API key needed              |
+| Google maps        | Google Maps SDK          | Shared provider on iOS and Android     |
+| Provider switching | React remount            | Keeps native SDK lifecycle predictable |

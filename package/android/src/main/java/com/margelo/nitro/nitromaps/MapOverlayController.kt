@@ -1,8 +1,11 @@
 package com.margelo.nitro.nitromaps
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import com.facebook.react.uimanager.ThemedReactContext
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -20,10 +23,12 @@ class MapOverlayController(
   private val context: ThemedReactContext,
 ) {
   private val markers = HashMap<String, Marker>()
+  private val markerVersions = HashMap<String, Long>()
   private val clusterByKey = HashMap<String, ClusterElement.Cluster>()
   private val polylines = LinkedHashMap<String, Polyline>()
   private val polygons = LinkedHashMap<String, Polygon>()
   private val circles = LinkedHashMap<String, Circle>()
+  private val markerEnterAnimators = HashMap<String, Animator>()
   private var clusteringEnabled = false
   private var onMarkerPress: ((String) -> Unit)? = null
   private var onClusterPress: ((List<String>, Coordinate) -> Unit)? = null
@@ -33,11 +38,16 @@ class MapOverlayController(
   private var refreshGeneration: Int = 0
   private var viewWidthPx: Int = 0
   private var viewHeightPx: Int = 0
-  private var liveRefreshPending = false
+  private var idleRefreshRunnable: Runnable? = null
+  private var liveRefreshRunnable: Runnable? = null
+  private var lastLiveRefreshMs: Long = 0L
   private var computeExecutor = Executors.newSingleThreadExecutor()
   private val mainHandler = Handler(Looper.getMainLooper())
   private val density: Float = context.resources.displayMetrics.density
   private val iconFactory = ClusterIconFactory(density)
+
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
 
   fun setGoogleMap(map: GoogleMap?) {
     googleMap = map
@@ -70,11 +80,16 @@ class MapOverlayController(
   }
 
   fun clear() {
+    markerEnterAnimators.values.toSet().forEach { it.cancel() }
+    cancelIdleRefresh()
+    cancelLiveRefresh()
+    markerEnterAnimators.clear()
     markers.values.forEach { it.remove() }
     polylines.values.forEach { it.remove() }
     polygons.values.forEach { it.remove() }
     circles.values.forEach { it.remove() }
     markers.clear()
+    markerVersions.clear()
     clusterByKey.clear()
     polylines.clear()
     polygons.clear()
@@ -117,7 +132,11 @@ class MapOverlayController(
     }
   }
 
-  fun refreshViewportMarkers() {
+  fun refreshViewportMarkers(
+    animateEntering: Boolean = true,
+    updateRetained: Boolean = true,
+    maxAnimatedMarkers: Int = MAX_ANIMATED_MARKERS_PER_DIFF,
+  ) {
     val map = googleMap ?: return
     val index = spatialIndex ?: return
     if (!usesViewportPipeline()) {
@@ -132,7 +151,7 @@ class MapOverlayController(
     val clustering = clusteringEnabled
     val widthPx = viewWidthPx
     val heightPx = viewHeightPx
-    val displayed = HashSet(markers.keys)
+    val displayedVersions = HashMap(markerVersions)
     refreshGeneration += 1
     val generation = refreshGeneration
 
@@ -153,19 +172,22 @@ class MapOverlayController(
         if (!nextKeys.add(key)) {
           continue
         }
-        if (displayed.contains(key)) {
-          retained.add(element)
+        val version = element.renderVersion
+        if (displayedVersions[key] != null) {
+          if (updateRetained && displayedVersions[key] != version) {
+            retained.add(element)
+          }
         } else {
           added.add(element)
         }
       }
-      val removed = displayed - nextKeys
+      val removed = displayedVersions.keys - nextKeys
 
       mainHandler.post {
         if (generation != refreshGeneration) {
           return@post
         }
-        applyDiff(removed, added, retained)
+        applyDiff(removed, added, retained, animateEntering, maxAnimatedMarkers)
       }
     }
   }
@@ -191,35 +213,63 @@ class MapOverlayController(
     removedKeys: Set<String>,
     added: List<ClusterElement>,
     retained: List<ClusterElement>,
+    animateEntering: Boolean = true,
+    maxAnimatedMarkers: Int = MAX_ANIMATED_MARKERS_PER_DIFF,
   ) {
     val map = googleMap ?: return
 
     for (key in removedKeys) {
+      cancelEnteringAnimation(key)
       markers.remove(key)?.remove()
+      markerVersions.remove(key)
       clusterByKey.remove(key)
     }
 
-    val addedMarkers = ArrayList<Marker>(added.size)
+    var remainingAnimationBudget = maxAnimatedMarkers.coerceAtLeast(0)
+    val addedMarkers = ArrayList<AddedMarker>(minOf(added.size, remainingAnimationBudget))
     for (element in added) {
       val key = element.diffKey
       when (element) {
         is ClusterElement.Single -> {
-          map.addMarker(element.descriptor.toMarkerOptions())?.also { marker ->
+          val animation = enteringAnimation(element)
+          val shouldAnimate = animateEntering &&
+            remainingAnimationBudget > 0 &&
+            OverlayEnteringAnimationResolver.shouldRun(animation)
+          val options = element.descriptor.toMarkerOptions()
+          if (shouldAnimate) {
+            options.alpha(0f)
+          }
+          map.addMarker(options)?.also { marker ->
             marker.tag = key
             markers[key] = marker
-            addedMarkers.add(marker)
+            markerVersions[key] = element.renderVersion
+            if (shouldAnimate) {
+              addedMarkers.add(AddedMarker(key, marker, animation))
+              remainingAnimationBudget -= 1
+            }
           }
         }
         is ClusterElement.Cluster -> {
+          val animation = enteringAnimation(element)
+          val shouldAnimate = animateEntering &&
+            remainingAnimationBudget > 0 &&
+            OverlayEnteringAnimationResolver.shouldRun(animation)
           val options = MarkerOptions()
             .position(element.position)
             .icon(iconFactory.icon(element.count))
             .anchor(0.5f, 0.5f)
+          if (shouldAnimate) {
+            options.alpha(0f)
+          }
           map.addMarker(options)?.also { marker ->
             marker.tag = key
             markers[key] = marker
+            markerVersions[key] = element.renderVersion
             clusterByKey[key] = element
-            addedMarkers.add(marker)
+            if (shouldAnimate) {
+              addedMarkers.add(AddedMarker(key, marker, animation))
+              remainingAnimationBudget -= 1
+            }
           }
         }
       }
@@ -228,6 +278,8 @@ class MapOverlayController(
     for (element in retained) {
       val key = element.diffKey
       val marker = markers[key] ?: continue
+      cancelEnteringAnimation(key)
+      marker.alpha = 1f
       when (element) {
         is ClusterElement.Single -> {
           marker.position = LatLng(
@@ -237,6 +289,7 @@ class MapOverlayController(
           marker.title = element.descriptor.title
           marker.snippet = element.descriptor.subtitle
           marker.isDraggable = element.descriptor.draggable == true
+          clusterByKey.remove(key)
         }
         is ClusterElement.Cluster -> {
           marker.position = element.position
@@ -244,48 +297,126 @@ class MapOverlayController(
           clusterByKey[key] = element
         }
       }
+      markerVersions[key] = element.renderVersion
     }
 
-    animateFadeIn(addedMarkers)
+    animateEntering(addedMarkers)
   }
 
-  /** Fades newly added markers in via a single shared animator. */
-  private fun animateFadeIn(added: List<Marker>) {
+  /** Applies entering animations to newly added markers via a single shared animator. */
+  private fun animateEntering(added: List<AddedMarker>) {
     if (added.isEmpty()) {
       return
     }
 
-    added.forEach { marker ->
-      if (markers.containsValue(marker)) {
-        marker.alpha = 0f
+    val animated = added.mapNotNull { addedMarker ->
+      if (!OverlayEnteringAnimationResolver.shouldRun(addedMarker.animation)) {
+        return@mapNotNull null
       }
+      cancelEnteringAnimation(addedMarker.key)
+      addedMarker.marker.alpha = 0f
+      addedMarker
     }
-    ValueAnimator.ofFloat(0f, 1f).apply {
-      duration = 220
+
+    if (animated.isEmpty()) {
+      return
+    }
+
+    val startDelayMs = animated.minOf { it.animation.delayMs }
+    val totalDurationMs = animated.maxOf {
+      it.animation.delayMs + it.animation.durationMs
+    } - startDelayMs
+
+    val animator = ValueAnimator.ofFloat(0f, 1f)
+    animator.duration = totalDurationMs
+    animator.startDelay = startDelayMs
+    animator.apply {
       addUpdateListener { animator ->
-        val value = animator.animatedValue as Float
-        added.forEach { marker ->
-          if (markers.containsValue(marker)) {
-            marker.alpha = value
-          }
+        val elapsed = (animator.animatedFraction * duration).toLong()
+        animated.forEach { animatedMarker ->
+          val localElapsed = elapsed - (animatedMarker.animation.delayMs - startDelay)
+          val progress = (localElapsed.toFloat() / animatedMarker.animation.durationMs.toFloat())
+            .coerceIn(0f, 1f)
+          animatedMarker.marker.alpha = progress
         }
       }
-      start()
+      addListener(object : AnimatorListenerAdapter() {
+        override fun onAnimationEnd(animation: Animator) {
+          revealAnimatedMarkers(animated)
+          clearCompletedAnimator(animation, animated)
+        }
+
+        override fun onAnimationCancel(animation: Animator) {
+          revealAnimatedMarkers(animated)
+          clearCompletedAnimator(animation, animated)
+        }
+      })
+    }
+    animated.forEach { markerEnterAnimators[it.key] = animator }
+    animator.start()
+  }
+
+  private fun revealAnimatedMarkers(animated: List<AddedMarker>) {
+    animated.forEach { animatedMarker ->
+      animatedMarker.marker.alpha = 1f
+    }
+  }
+
+  private fun cancelEnteringAnimation(key: String) {
+    markerEnterAnimators.remove(key)?.cancel()
+  }
+
+  private fun clearCompletedAnimator(animator: Animator, animated: List<AddedMarker>) {
+    animated.forEach { animatedMarker ->
+      if (markerEnterAnimators[animatedMarker.key] === animator) {
+        markerEnterAnimators.remove(animatedMarker.key)
+      }
+    }
+  }
+
+  private fun enteringAnimation(element: ClusterElement): ResolvedOverlayEnteringAnimation {
+    return when (element) {
+      is ClusterElement.Single -> OverlayEnteringAnimationResolver.resolve(
+        element.descriptor.enteringAnimation,
+        markerEnteringAnimation,
+      )
+      is ClusterElement.Cluster -> OverlayEnteringAnimationResolver.resolve(clusterEnteringAnimation)
     }
   }
 
   private fun applyMarkersSync(descriptors: Array<MarkerDescriptor>) {
     val map = googleMap ?: return
+    refreshGeneration += 1
+    cancelIdleRefresh()
+    cancelLiveRefresh()
+    markerVersions.clear()
+    clusterByKey.clear()
     reconcile(
       current = markers,
       next = descriptors.associate { ("s:" + it.id) to it },
-      remove = { it.remove() },
+      remove = { marker ->
+        (marker.tag as? String)?.let { cancelEnteringAnimation(it) }
+        marker.remove()
+      },
       add = { descriptor ->
-        map.addMarker(descriptor.toMarkerOptions())?.also { marker ->
-          marker.tag = "s:" + descriptor.id
+        val element = ClusterElement.Single(descriptor)
+        val key = "s:" + descriptor.id
+        val animation = enteringAnimation(element)
+        val options = descriptor.toMarkerOptions()
+        if (OverlayEnteringAnimationResolver.shouldRun(animation)) {
+          options.alpha(0f)
+        }
+        map.addMarker(options)?.also { marker ->
+          marker.tag = key
+          markerVersions[key] = element.renderVersion
+          animateEntering(listOf(AddedMarker(key, marker, animation)))
         }
       },
       update = { marker, descriptor ->
+        val element = ClusterElement.Single(descriptor)
+        val key = "s:" + descriptor.id
+        (marker.tag as? String)?.let { cancelEnteringAnimation(it) }
+        marker.alpha = 1f
         marker.position = LatLng(
           descriptor.coordinate.latitude,
           descriptor.coordinate.longitude,
@@ -293,6 +424,7 @@ class MapOverlayController(
         marker.title = descriptor.title
         marker.snippet = descriptor.subtitle
         marker.isDraggable = descriptor.draggable == true
+        markerVersions[key] = element.renderVersion
         marker
       },
     )
@@ -300,22 +432,69 @@ class MapOverlayController(
 
   fun onCameraIdle() {
     if (usesViewportPipeline()) {
-      refreshViewportMarkers()
+      scheduleIdleRefresh()
     }
   }
 
-  /** Throttled live recompute while the camera is moving. */
+  /** Runs a lightweight live pass while deferring exact marker updates to idle. */
   fun onCameraMove() {
-    if (!usesViewportPipeline() || liveRefreshPending) {
-      return
-    }
-    liveRefreshPending = true
-    mainHandler.postDelayed({
-      liveRefreshPending = false
+    cancelIdleRefresh()
+    scheduleLiveRefresh()
+  }
+
+  private fun scheduleIdleRefresh() {
+    cancelLiveRefresh()
+    cancelIdleRefresh()
+    val runnable = Runnable {
+      idleRefreshRunnable = null
       if (usesViewportPipeline()) {
         refreshViewportMarkers()
       }
-    }, LIVE_REFRESH_THROTTLE_MS)
+    }
+    idleRefreshRunnable = runnable
+    mainHandler.postDelayed(runnable, IDLE_REFRESH_DEBOUNCE_MS)
+  }
+
+  private fun scheduleLiveRefresh() {
+    if (!usesViewportPipeline() || liveRefreshRunnable != null) {
+      return
+    }
+
+    val now = SystemClock.uptimeMillis()
+    val elapsed = now - lastLiveRefreshMs
+    if (lastLiveRefreshMs == 0L || elapsed >= LIVE_REFRESH_THROTTLE_MS) {
+      runLiveRefresh()
+      return
+    }
+
+    val runnable = Runnable {
+      liveRefreshRunnable = null
+      runLiveRefresh()
+    }
+    liveRefreshRunnable = runnable
+    mainHandler.postDelayed(runnable, LIVE_REFRESH_THROTTLE_MS - elapsed)
+  }
+
+  private fun runLiveRefresh() {
+    lastLiveRefreshMs = SystemClock.uptimeMillis()
+    if (usesViewportPipeline()) {
+      refreshViewportMarkers(
+        animateEntering = true,
+        updateRetained = true,
+        maxAnimatedMarkers = MAX_LIVE_ANIMATED_MARKERS_PER_DIFF,
+      )
+    }
+  }
+
+  private fun cancelIdleRefresh() {
+    idleRefreshRunnable?.let(mainHandler::removeCallbacks)
+    idleRefreshRunnable = null
+  }
+
+  private fun cancelLiveRefresh() {
+    liveRefreshRunnable?.let(mainHandler::removeCallbacks)
+    liveRefreshRunnable = null
+    lastLiveRefreshMs = 0L
   }
 
   fun onMarkerClick(marker: Marker): Boolean {
@@ -434,7 +613,22 @@ class MapOverlayController(
     /** Non-clustered datasets at or below this size reconcile synchronously. */
     const val ASYNC_THRESHOLD = 500
 
-    /** Minimum gap between live recomputes while the camera moves. */
-    const val LIVE_REFRESH_THROTTLE_MS = 100L
+    /** Main-thread marker animations are capped so bulk refreshes do not block gestures. */
+    const val MAX_ANIMATED_MARKERS_PER_DIFF = 96
+
+    /** Live refresh keeps entrance motion visible without animating every marker during gestures. */
+    const val MAX_LIVE_ANIMATED_MARKERS_PER_DIFF = 24
+
+    /** Coalesces rapid Google Maps idle callbacks produced by repeated short pans. */
+    const val IDLE_REFRESH_DEBOUNCE_MS = 120L
+
+    /** Minimum delay between lightweight viewport updates while the camera moves. */
+    const val LIVE_REFRESH_THROTTLE_MS = 180L
   }
+
+  private data class AddedMarker(
+    val key: String,
+    val marker: Marker,
+    val animation: ResolvedOverlayEnteringAnimation,
+  )
 }

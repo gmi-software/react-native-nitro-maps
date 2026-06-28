@@ -1,183 +1,262 @@
-import MapKit
 import NitroModules
 import UIKit
 
-/// iOS implementation of the `MapView` Nitro HybridView backed by MapKit.
 final class HybridMapView: HybridMapViewSpec {
-  private let mapViewDelegate = HybridMapViewDelegate()
-  private var isProgrammaticUpdate = false
-  private var hasFiredMapReady = false
-  private var liveClusterTimer: Timer?
-  fileprivate lazy var overlayController = MapOverlayController(mapView: view)
+  private let containerView = UIView()
+  private var adapter: MapProviderAdapter?
 
-  lazy var view: MKMapView = {
-    let mapView = NitroMKMapView()
-    mapViewDelegate.parent = self
-    mapView.delegate = mapViewDelegate
-    mapView.mapType = mapType.toMKMapType()
-    mapView.isScrollEnabled = scrollEnabled ?? true
-    mapView.isZoomEnabled = zoomEnabled ?? true
-    mapView.isRotateEnabled = rotateEnabled ?? true
-    mapView.isPitchEnabled = pitchEnabled ?? true
-    applyUserLocationSettings(to: mapView)
-    applyControlSettings(to: mapView)
-    applyMapPadding(to: mapView)
-    applyCustomMapStyle(to: mapView)
-    mapView.register(
-      NitroPinAnnotationView.self,
-      forAnnotationViewWithReuseIdentifier: NitroPinAnnotationView.reuseIdentifier
-    )
-    mapView.register(
-      NitroClusterAnnotationView.self,
-      forAnnotationViewWithReuseIdentifier: NitroClusterAnnotationView.reuseIdentifier
-    )
-    mapViewDelegate.installGestureRecognizers(on: mapView)
-    return mapView
+  private var _provider: MapProvider = .apple
+  private var _mapType: MapType = .standard
+  private var _region: Region?
+  private var _camera: Camera?
+  private var _scrollEnabled: Bool?
+  private var _zoomEnabled: Bool?
+  private var _rotateEnabled: Bool?
+  private var _pitchEnabled: Bool?
+  private var _showsUserLocation: Bool?
+  private var _followsUserLocation: Bool?
+  private var _showsCompass: Bool?
+  private var _showsScale: Bool?
+  private var _customMapStyle: String?
+  private var _googleMapId: String?
+  private var _clusteringEnabled: Bool?
+  private var _mapPadding: EdgePadding?
+  private var _markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  private var _clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
+
+  lazy var view: UIView = {
+    containerView
   }()
 
-  var mapType: MapType = .standard {
-    didSet {
-      view.mapType = mapType.toMKMapType()
-      applyCustomMapStyle(to: view)
+  var provider: MapProvider? {
+    get { _provider }
+    set {
+      let nextProvider = newValue ?? .apple
+      guard nextProvider != _provider || adapter == nil else {
+        return
+      }
+
+      _provider = nextProvider
+      installAdapter(for: nextProvider)
+    }
+  }
+
+  var mapType: MapType {
+    get { _mapType }
+    set {
+      _mapType = newValue
+      adapter?.mapType = newValue
     }
   }
 
   var region: Region? {
-    didSet {
-      guard let region, !isProgrammaticUpdate, camera == nil else {
-        return
-      }
-      applyRegion(region)
+    get { _region }
+    set {
+      _region = newValue
+      adapter?.region = newValue
     }
   }
 
   var camera: Camera? {
-    didSet {
-      guard let camera, !isProgrammaticUpdate else {
-        return
-      }
-      updateMapCamera(camera, animated: false)
+    get { _camera }
+    set {
+      _camera = newValue
+      adapter?.camera = newValue
     }
   }
 
   var scrollEnabled: Bool? {
-    didSet {
-      view.isScrollEnabled = scrollEnabled ?? true
+    get { _scrollEnabled }
+    set {
+      _scrollEnabled = newValue
+      adapter?.scrollEnabled = newValue
     }
   }
 
   var zoomEnabled: Bool? {
-    didSet {
-      view.isZoomEnabled = zoomEnabled ?? true
+    get { _zoomEnabled }
+    set {
+      _zoomEnabled = newValue
+      adapter?.zoomEnabled = newValue
     }
   }
 
   var rotateEnabled: Bool? {
-    didSet {
-      view.isRotateEnabled = rotateEnabled ?? true
+    get { _rotateEnabled }
+    set {
+      _rotateEnabled = newValue
+      adapter?.rotateEnabled = newValue
     }
   }
 
   var pitchEnabled: Bool? {
-    didSet {
-      view.isPitchEnabled = pitchEnabled ?? true
+    get { _pitchEnabled }
+    set {
+      _pitchEnabled = newValue
+      adapter?.pitchEnabled = newValue
     }
   }
 
   var showsUserLocation: Bool? {
-    didSet {
-      applyUserLocationSettings(to: view)
+    get { _showsUserLocation }
+    set {
+      _showsUserLocation = newValue
+      adapter?.showsUserLocation = newValue
     }
   }
 
   var followsUserLocation: Bool? {
-    didSet {
-      applyUserLocationSettings(to: view)
+    get { _followsUserLocation }
+    set {
+      _followsUserLocation = newValue
+      adapter?.followsUserLocation = newValue
     }
   }
 
   var showsCompass: Bool? {
-    didSet {
-      applyControlSettings(to: view)
+    get { _showsCompass }
+    set {
+      _showsCompass = newValue
+      adapter?.showsCompass = newValue
     }
   }
 
   var showsScale: Bool? {
-    didSet {
-      applyControlSettings(to: view)
+    get { _showsScale }
+    set {
+      _showsScale = newValue
+      adapter?.showsScale = newValue
     }
   }
 
   var customMapStyle: String? {
-    didSet {
-      applyCustomMapStyle(to: view)
+    get { _customMapStyle }
+    set {
+      _customMapStyle = newValue
+      adapter?.customMapStyle = newValue
+    }
+  }
+
+  var googleMapId: String? {
+    get { _googleMapId }
+    set {
+      guard _googleMapId != newValue else {
+        return
+      }
+
+      _googleMapId = newValue
+      if _provider == .google, adapter != nil {
+        installAdapter(for: _provider)
+      }
     }
   }
 
   var clusteringEnabled: Bool? {
-    didSet {
-      overlayController.setClusteringEnabled(clusteringEnabled == true)
+    get { _clusteringEnabled }
+    set {
+      _clusteringEnabled = newValue
+      adapter?.clusteringEnabled = newValue
     }
   }
 
   var mapPadding: EdgePadding? {
-    didSet {
-      applyMapPadding(to: view)
+    get { _mapPadding }
+    set {
+      _mapPadding = newValue
+      adapter?.mapPadding = newValue
     }
   }
 
-  var onRegionChange: ((Region) -> Void)?
-  var onRegionChangeComplete: ((Region) -> Void)?
-  var onMapReady: (() -> Void)?
-  var onPress: ((Coordinate) -> Void)?
-  var onLongPress: ((Coordinate) -> Void)?
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    get { _markerEnteringAnimation }
+    set {
+      _markerEnteringAnimation = newValue
+      adapter?.markerEnteringAnimation = newValue
+    }
+  }
+
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    get { _clusterEnteringAnimation }
+    set {
+      _clusterEnteringAnimation = newValue
+      adapter?.clusterEnteringAnimation = newValue
+    }
+  }
+
+  var onRegionChange: ((Region) -> Void)? {
+    didSet { adapter?.onRegionChange = onRegionChange }
+  }
+
+  var onRegionChangeComplete: ((Region) -> Void)? {
+    didSet { adapter?.onRegionChangeComplete = onRegionChangeComplete }
+  }
+
+  var onMapReady: (() -> Void)? {
+    didSet { adapter?.onMapReady = onMapReady }
+  }
+
+  var onPress: ((Coordinate) -> Void)? {
+    didSet { adapter?.onPress = onPress }
+  }
+
+  var onLongPress: ((Coordinate) -> Void)? {
+    didSet { adapter?.onLongPress = onLongPress }
+  }
 
   var markers: [MarkerDescriptor]? {
-    didSet {
-      overlayController.setMarkers(markers)
-    }
+    didSet { adapter?.markers = markers }
   }
 
   var polylines: [PolylineDescriptor]? {
-    didSet {
-      overlayController.updatePolylines(polylines)
-    }
+    didSet { adapter?.polylines = polylines }
   }
 
   var polygons: [PolygonDescriptor]? {
-    didSet {
-      overlayController.updatePolygons(polygons)
-    }
+    didSet { adapter?.polygons = polygons }
   }
 
   var circles: [CircleDescriptor]? {
-    didSet {
-      overlayController.updateCircles(circles)
-    }
+    didSet { adapter?.circles = circles }
   }
 
-  var onMarkerPress: ((String) -> Void)?
-  var onMarkerDragEnd: ((String, Coordinate) -> Void)?
-  var onPolylinePress: ((String) -> Void)?
-  var onPolygonPress: ((String) -> Void)?
-  var onCirclePress: ((String) -> Void)?
-  var onClusterPress: (([String], Coordinate) -> Void)?
+  var onMarkerPress: ((String) -> Void)? {
+    didSet { adapter?.onMarkerPress = onMarkerPress }
+  }
+
+  var onMarkerDragEnd: ((String, Coordinate) -> Void)? {
+    didSet { adapter?.onMarkerDragEnd = onMarkerDragEnd }
+  }
+
+  var onPolylinePress: ((String) -> Void)? {
+    didSet { adapter?.onPolylinePress = onPolylinePress }
+  }
+
+  var onPolygonPress: ((String) -> Void)? {
+    didSet { adapter?.onPolygonPress = onPolygonPress }
+  }
+
+  var onCirclePress: ((String) -> Void)? {
+    didSet { adapter?.onCirclePress = onCirclePress }
+  }
+
+  var onClusterPress: (([String], Coordinate) -> Void)? {
+    didSet { adapter?.onClusterPress = onClusterPress }
+  }
 
   func fetchCamera() throws -> Promise<Camera> {
-    Promise.resolved(withResult: view.camera.toCamera())
+    try currentAdapter().fetchCamera()
   }
 
   func applyCamera(camera: Camera) throws {
-    updateMapCamera(camera, animated: false)
+    try currentAdapter().applyCamera(camera: camera)
   }
 
   func animateCamera(camera: Camera, duration: Double?) throws {
-    let animationDuration = duration ?? 0.25
-    updateMapCamera(camera, animated: true, duration: animationDuration)
+    try currentAdapter().animateCamera(camera: camera, duration: duration)
   }
 
   func getVisibleRegion() throws -> Promise<VisibleRegion> {
-    Promise.resolved(withResult: view.toVisibleRegion())
+    try currentAdapter().getVisibleRegion()
   }
 
   func fitToCoordinates(
@@ -185,146 +264,39 @@ final class HybridMapView: HybridMapViewSpec {
     padding: EdgePadding?,
     animated: Bool?
   ) throws {
-    guard !coordinates.isEmpty else {
-      return
-    }
-
-    var mapRect = MKMapRect.null
-    for coordinate in coordinates {
-      let mapPoint = MKMapPoint(
-        CLLocationCoordinate2D(
-          latitude: coordinate.latitude,
-          longitude: coordinate.longitude
-        )
-      )
-      let pointRect = MKMapRect(x: mapPoint.x, y: mapPoint.y, width: 0, height: 0)
-      mapRect = mapRect.union(pointRect)
-    }
-
-    let edgePadding = padding?.toUIEdgeInsets() ?? .zero
-    isProgrammaticUpdate = true
-    view.setVisibleMapRect(
-      mapRect,
-      edgePadding: edgePadding,
-      animated: animated ?? true
+    try currentAdapter().fitToCoordinates(
+      coordinates: coordinates,
+      padding: padding,
+      animated: animated
     )
-    isProgrammaticUpdate = false
-  }
-
-  func applyRegion(_ region: Region, animated: Bool = false) {
-    isProgrammaticUpdate = true
-    view.setRegion(region.toMKCoordinateRegion(), animated: animated)
-    isProgrammaticUpdate = false
-  }
-
-  func updateMapCamera(_ camera: Camera, animated: Bool, duration: Double = 0) {
-    isProgrammaticUpdate = true
-    let mapCamera = camera.toMKMapCamera()
-
-    if animated {
-      UIView.animate(withDuration: duration) {
-        self.view.camera = mapCamera
-      }
-    } else {
-      view.camera = mapCamera
-    }
-
-    isProgrammaticUpdate = false
-  }
-
-  // Derived from MKCoordinateRegion (center + span). May differ from Android
-  // bounds-derived region when the map is rotated or pitched.
-  func currentRegion() -> Region {
-    view.region.toRegion()
-  }
-
-  func scheduleMarkerViewportRefresh() {
-    overlayController.scheduleViewportRefresh()
-  }
-
-  func animateToClusterRegion(_ region: MKCoordinateRegion) {
-    view.setRegion(view.regionThatFits(region), animated: true)
-  }
-
-  /// Recomputes clusters live (throttled) while the user is interacting.
-  func startLiveClustering() {
-    guard liveClusterTimer == nil else {
-      return
-    }
-    let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
-      self?.overlayController.refreshNow()
-    }
-    RunLoop.main.add(timer, forMode: .common)
-    liveClusterTimer = timer
-  }
-
-  func stopLiveClustering() {
-    liveClusterTimer?.invalidate()
-    liveClusterTimer = nil
-    overlayController.scheduleViewportRefresh(immediate: true)
-  }
-
-  func notifyRegionChange(complete: Bool) {
-    guard !isProgrammaticUpdate else {
-      return
-    }
-
-    let region = currentRegion()
-    if complete {
-      onRegionChangeComplete?(region)
-    } else {
-      onRegionChange?(region)
-    }
-  }
-
-  func notifyMapReadyIfNeeded() {
-    guard !hasFiredMapReady else {
-      return
-    }
-
-    hasFiredMapReady = true
-    overlayController.setMarkers(markers)
-    onMapReady?()
-  }
-
-  func notifyPress(at point: CGPoint) {
-    let coordinate = view.convert(point, toCoordinateFrom: view)
-    onPress?(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
-  }
-
-  func notifyLongPress(at point: CGPoint) {
-    let coordinate = view.convert(point, toCoordinateFrom: view)
-    onLongPress?(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
-  }
-
-  func notifyOverlayPress(at point: CGPoint) -> Bool {
-    guard let overlayId = overlayController.overlayId(at: point) else {
-      return false
-    }
-
-    switch overlayController.overlayKind(for: overlayId) {
-    case .polyline:
-      onPolylinePress?(overlayId)
-    case .polygon:
-      onPolygonPress?(overlayId)
-    case .circle:
-      onCirclePress?(overlayId)
-    case .none:
-      return false
-    }
-
-    return true
-  }
-
-  func renderer(for overlay: MKOverlay) -> MKOverlayRenderer? {
-    overlayController.renderer(for: overlay)
   }
 
   func prepareForRecycle() {
-    liveClusterTimer?.invalidate()
-    liveClusterTimer = nil
-    isProgrammaticUpdate = false
-    hasFiredMapReady = false
+    adapter?.prepareForRecycle()
+    adapter?.contentView.removeFromSuperview()
+    adapter = nil
+    _provider = .apple
+    _mapType = .standard
+    _region = nil
+    _camera = nil
+    _scrollEnabled = nil
+    _zoomEnabled = nil
+    _rotateEnabled = nil
+    _pitchEnabled = nil
+    _showsUserLocation = nil
+    _followsUserLocation = nil
+    _showsCompass = nil
+    _showsScale = nil
+    _customMapStyle = nil
+    _googleMapId = nil
+    _clusteringEnabled = nil
+    _mapPadding = nil
+    _markerEnteringAnimation = nil
+    _clusterEnteringAnimation = nil
+    markers = nil
+    polylines = nil
+    polygons = nil
+    circles = nil
     onRegionChange = nil
     onRegionChangeComplete = nil
     onMapReady = nil
@@ -336,64 +308,88 @@ final class HybridMapView: HybridMapViewSpec {
     onPolygonPress = nil
     onCirclePress = nil
     onClusterPress = nil
-    markers = nil
-    polylines = nil
-    polygons = nil
-    circles = nil
-    overlayController.reset()
-    mapType = .standard
-    region = nil
-    camera = nil
-    scrollEnabled = nil
-    zoomEnabled = nil
-    rotateEnabled = nil
-    pitchEnabled = nil
-    showsUserLocation = nil
-    followsUserLocation = nil
-    showsCompass = nil
-    showsScale = nil
-    customMapStyle = nil
-    clusteringEnabled = nil
-    mapPadding = nil
-    view.mapType = .standard
-    view.isScrollEnabled = true
-    view.isZoomEnabled = true
-    view.isRotateEnabled = true
-    view.isPitchEnabled = true
-    view.showsUserLocation = false
-    view.userTrackingMode = .none
-    view.showsCompass = true
-    view.showsScale = false
-    view.layoutMargins = .zero
-    if #available(iOS 16.0, *) {
-      view.preferredConfiguration = MapType.standard.toMKMapConfiguration()
+  }
+
+  private func currentAdapter() throws -> MapProviderAdapter {
+    if let adapter {
+      return adapter
+    }
+
+    installAdapter(for: _provider)
+    return adapter!
+  }
+
+  private func installAdapter(for provider: MapProvider) {
+    adapter?.prepareForRecycle()
+    adapter?.contentView.removeFromSuperview()
+
+    let nextAdapter = makeAdapter(for: provider)
+    adapter = nextAdapter
+    attach(contentView: nextAdapter.contentView)
+    syncState(to: nextAdapter)
+  }
+
+  private func makeAdapter(for provider: MapProvider) -> MapProviderAdapter {
+    switch provider {
+    case .apple:
+      return AppleMapProviderAdapter()
+    case .google:
+      do {
+        return try GoogleMapProviderAdapter(googleMapId: _googleMapId)
+      } catch {
+        return UnavailableMapProviderAdapter(error: error)
+      }
+    case .openstreetmap, .mapbox:
+      return UnavailableMapProviderAdapter(
+        error: MapProviderConfigurationError.unsupportedIOSProvider(provider)
+      )
     }
   }
 
-  private func applyUserLocationSettings(to mapView: MKMapView) {
-    mapView.showsUserLocation = showsUserLocation ?? false
-    if followsUserLocation == true, showsUserLocation == true {
-      mapView.userTrackingMode = .follow
-    } else {
-      mapView.userTrackingMode = .none
-    }
+  private func attach(contentView: UIView) {
+    contentView.translatesAutoresizingMaskIntoConstraints = false
+    containerView.addSubview(contentView)
+    NSLayoutConstraint.activate([
+      contentView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+      contentView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+      contentView.topAnchor.constraint(equalTo: containerView.topAnchor),
+      contentView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+    ])
   }
 
-  private func applyControlSettings(to mapView: MKMapView) {
-    mapView.showsCompass = showsCompass ?? true
-    mapView.showsScale = showsScale ?? false
-    mapView.applyScaleAppearance()
-  }
-
-  private func applyMapPadding(to mapView: MKMapView) {
-    let insets = mapPadding?.toUIEdgeInsets() ?? .zero
-    mapView.layoutMargins = insets
-  }
-
-  private func applyCustomMapStyle(to mapView: MKMapView) {
-    if #available(iOS 16.0, *) {
-      CustomMapStyleParser.apply(json: customMapStyle, mapType: mapType, to: mapView)
-    }
+  private func syncState(to adapter: MapProviderAdapter) {
+    adapter.mapType = _mapType
+    adapter.region = _region
+    adapter.camera = _camera
+    adapter.scrollEnabled = _scrollEnabled
+    adapter.zoomEnabled = _zoomEnabled
+    adapter.rotateEnabled = _rotateEnabled
+    adapter.pitchEnabled = _pitchEnabled
+    adapter.showsUserLocation = _showsUserLocation
+    adapter.followsUserLocation = _followsUserLocation
+    adapter.showsCompass = _showsCompass
+    adapter.showsScale = _showsScale
+    adapter.customMapStyle = _customMapStyle
+    adapter.googleMapId = _googleMapId
+    adapter.clusteringEnabled = _clusteringEnabled
+    adapter.mapPadding = _mapPadding
+    adapter.markerEnteringAnimation = _markerEnteringAnimation
+    adapter.clusterEnteringAnimation = _clusterEnteringAnimation
+    adapter.onRegionChange = onRegionChange
+    adapter.onRegionChangeComplete = onRegionChangeComplete
+    adapter.onMapReady = onMapReady
+    adapter.onPress = onPress
+    adapter.onLongPress = onLongPress
+    adapter.markers = markers
+    adapter.polylines = polylines
+    adapter.polygons = polygons
+    adapter.circles = circles
+    adapter.onMarkerPress = onMarkerPress
+    adapter.onMarkerDragEnd = onMarkerDragEnd
+    adapter.onPolylinePress = onPolylinePress
+    adapter.onPolygonPress = onPolygonPress
+    adapter.onCirclePress = onCirclePress
+    adapter.onClusterPress = onClusterPress
   }
 }
 

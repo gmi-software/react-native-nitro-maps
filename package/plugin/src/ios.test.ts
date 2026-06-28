@@ -1,4 +1,20 @@
-import { applyLocationPermissionsToInfoPlist } from './ios';
+import {
+  applyGoogleMapsIosApiKey,
+  applyLocationPermissionsToInfoPlist,
+  IOS_GOOGLE_MAPS_API_KEY,
+} from './ios';
+
+describe('applyGoogleMapsIosApiKey', () => {
+  it('returns the plist unchanged when the API key is omitted', () => {
+    expect(applyGoogleMapsIosApiKey({}, undefined)).toEqual({});
+  });
+
+  it('sets GoogleMapsIosApiKey when an API key is provided', () => {
+    expect(applyGoogleMapsIosApiKey({}, 'test-ios-key')).toEqual({
+      [IOS_GOOGLE_MAPS_API_KEY]: 'test-ios-key',
+    });
+  });
+});
 
 describe('applyLocationPermissionsToInfoPlist', () => {
   it('returns the plist unchanged when location options are omitted', () => {

@@ -7,6 +7,7 @@ import {
 import {
   type NitroMapsPluginOptions,
   requiresForegroundLocation,
+  resolveAndroidGoogleMapsApiKey,
   wantsAlwaysLocation,
 } from './types';
 
@@ -55,7 +56,7 @@ const withGoogleMapsApiKey: ConfigPlugin<NitroMapsPluginOptions> = (
   config,
   options = {},
 ) => {
-  const apiKey = options.googleMapsApiKey;
+  const apiKey = resolveAndroidGoogleMapsApiKey(options);
   if (!apiKey) {
     return config;
   }

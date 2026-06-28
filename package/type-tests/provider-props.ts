@@ -1,0 +1,71 @@
+import type { MapViewProps, MapViewPropsForProvider } from '../src';
+
+export const appleProps: MapViewPropsForProvider<'apple'> = {
+  provider: 'apple',
+  showsScale: true,
+  clusteringEnabled: true,
+  markerEnteringAnimation: { preset: 'fade-scale', duration: 180 },
+  clusterEnteringAnimation: 'system',
+};
+
+export const googleProps: MapViewPropsForProvider<'google'> = {
+  provider: 'google',
+  googleMapId: 'google-map-id',
+  customMapStyle: '[]',
+  clusteringEnabled: true,
+  clusterEnteringAnimation: false,
+};
+
+export const defaultProviderProps: MapViewProps = {
+  showsScale: true,
+  customMapStyle: '[]',
+  markerEnteringAnimation: false,
+  markers: [
+    {
+      id: 'marker-1',
+      coordinate: { latitude: 52.2297, longitude: 21.0122 },
+      enteringAnimation: { preset: 'fade', reduceMotion: 'system' },
+    },
+  ],
+};
+
+// @ts-expect-error Google Map IDs require the explicit Google provider.
+export const defaultProviderGoogleMapIdProps: MapViewProps = {
+  googleMapId: 'google-map-id',
+};
+
+export const plannedProviderProps: MapViewProps = {
+  provider: 'mapbox',
+};
+
+export const googleScaleProps: MapViewPropsForProvider<'google'> = {
+  provider: 'google',
+  // @ts-expect-error Google Maps SDK does not expose a native scale control.
+  showsScale: true,
+};
+
+export const appleMapIdProps: MapViewPropsForProvider<'apple'> = {
+  provider: 'apple',
+  // @ts-expect-error Google Map IDs are only supported by the Google provider.
+  googleMapId: 'google-map-id',
+};
+
+export const openStreetMapClusteringProps: MapViewPropsForProvider<'openstreetmap'> =
+  {
+    provider: 'openstreetmap',
+    // @ts-expect-error Planned OpenStreetMap support has no clustering capability yet.
+    clusteringEnabled: true,
+  };
+
+export const openStreetMapClusterAnimationProps: MapViewPropsForProvider<'openstreetmap'> =
+  {
+    provider: 'openstreetmap',
+    // @ts-expect-error Planned OpenStreetMap support has no cluster animation capability yet.
+    clusterEnteringAnimation: { preset: 'fade' },
+  };
+
+export const mapboxClusterAnimationProps: MapViewPropsForProvider<'mapbox'> = {
+  provider: 'mapbox',
+  // @ts-expect-error Planned Mapbox support has no cluster animation capability yet.
+  clusterEnteringAnimation: { preset: 'fade' },
+};

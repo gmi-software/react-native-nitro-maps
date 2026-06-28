@@ -5,6 +5,7 @@ import {
   getLocationPermissions,
   GOOGLE_MAPS_API_KEY_META,
 } from './android';
+import { resolveAndroidGoogleMapsApiKey } from './types';
 
 function createEmptyManifest(): AndroidConfig.Manifest.AndroidManifest {
   return {
@@ -38,6 +39,23 @@ describe('applyGoogleMapsApiKey', () => {
         },
       },
     ]);
+  });
+});
+
+describe('resolveAndroidGoogleMapsApiKey', () => {
+  it('prefers androidGoogleMapsApiKey over googleMapsApiKey', () => {
+    expect(
+      resolveAndroidGoogleMapsApiKey({
+        googleMapsApiKey: 'shared',
+        androidGoogleMapsApiKey: 'android',
+      }),
+    ).toBe('android');
+  });
+
+  it('falls back to googleMapsApiKey when androidGoogleMapsApiKey is omitted', () => {
+    expect(resolveAndroidGoogleMapsApiKey({ googleMapsApiKey: 'shared' })).toBe(
+      'shared',
+    );
   });
 });
 

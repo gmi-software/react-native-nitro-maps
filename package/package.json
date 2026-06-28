@@ -11,13 +11,14 @@
       "types": "./lib/typescript/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./app.plugin.js": "./app.plugin.js",
     "./package.json": "./package.json"
   },
   "files": [
+    "app.plugin.js",
     "src",
     "lib",
     "plugin/build",
-    "app.plugin.js",
     "nitrogen",
     "ios",
     "android",
@@ -35,7 +36,8 @@
     "prepack": "bun run build",
     "test": "jest",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.plugin.json --noEmit",
-    "nitrogen": "nitrogen"
+    "typecheck:provider-types": "tsc --noEmit -p tsconfig.type-tests.json",
+    "nitrogen": "nitrogen && bun ./scripts/patch-nitrogen-generated.mjs"
   },
   "expo": {
     "plugin": "./app.plugin.js"

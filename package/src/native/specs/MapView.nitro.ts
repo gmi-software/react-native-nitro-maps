@@ -5,11 +5,12 @@ import type {
 } from 'react-native-nitro-modules';
 import type { Camera } from '../../types/camera';
 import type { Coordinate } from '../../types/coordinate';
-import type { MapType } from '../../types/map';
+import type { MapProvider, MapType } from '../../types/map';
 import type { EdgePadding, Region, VisibleRegion } from '../../types/region';
 import type {
   CircleDescriptor,
   MarkerDescriptor,
+  OverlayEnteringAnimationDescriptor,
   PolygonDescriptor,
   PolylineDescriptor,
 } from './overlays';
@@ -20,6 +21,12 @@ import type {
  * @see {@linkcode MapView}
  */
 export interface MapViewProps extends HybridViewProps {
+  /** Native rendering backend for the map view. */
+  provider?: MapProvider;
+
+  /** Google Cloud Map ID for cloud-based Google Maps styling. */
+  googleMapId?: string;
+
   /**
    * The visual style of the map.
    *
@@ -65,6 +72,12 @@ export interface MapViewProps extends HybridViewProps {
 
   /** Padding applied to map edges, in density-independent pixels. */
   mapPadding?: EdgePadding;
+
+  /** Default entering animation for marker overlays. */
+  markerEnteringAnimation?: OverlayEnteringAnimationDescriptor;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimationDescriptor;
 
   /** Called when the visible region changes during user interaction. */
   onRegionChange?: (region: Region) => void;

@@ -1,9 +1,16 @@
 export type NitroMapsPluginOptions = {
   /**
-   * Google Maps API key for Android (`com.google.android.geo.API_KEY` meta-data).
-   * Reserved for future iOS Google Maps support (#2); no-op on iOS today (MapKit needs no key).
+   * Shared Google Maps API key for both platforms when platform-specific keys are omitted.
    */
   googleMapsApiKey?: string;
+  /**
+   * Google Maps API key for iOS (`GoogleMapsIosApiKey` in Info.plist).
+   */
+  iosGoogleMapsApiKey?: string;
+  /**
+   * Google Maps API key for Android (`com.google.android.geo.API_KEY` meta-data).
+   */
+  androidGoogleMapsApiKey?: string;
   /**
    * When set to a string, adds `NSLocationWhenInUseUsageDescription` on iOS and
    * `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` on Android.
@@ -34,4 +41,16 @@ export function requiresForegroundLocation(
   options: NitroMapsPluginOptions,
 ): boolean {
   return wantsWhenInUseLocation(options) || wantsAlwaysLocation(options);
+}
+
+export function resolveIosGoogleMapsApiKey(
+  options: NitroMapsPluginOptions,
+): string | undefined {
+  return options.iosGoogleMapsApiKey ?? options.googleMapsApiKey;
+}
+
+export function resolveAndroidGoogleMapsApiKey(
+  options: NitroMapsPluginOptions,
+): string | undefined {
+  return options.androidGoogleMapsApiKey ?? options.googleMapsApiKey;
 }

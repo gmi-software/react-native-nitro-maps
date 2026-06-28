@@ -1,17 +1,24 @@
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react';
 import { callback } from 'react-native-nitro-modules';
 import { useCollectedOverlays } from '../hooks/useCollectedOverlays';
 import { NativeMapView } from '../native/MapViewNative';
 import type { MapView as NativeMapViewHybrid } from '../native/specs/MapView.nitro';
 import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
+import { resolveMapProvider } from '../providers';
 import type { Coordinate } from '../types/coordinate';
 import type { MapViewProps } from '../types/map';
 import type { MapViewRef } from '../types/ref';
+import {
+  normalizeEnteringAnimation,
+  normalizeMarkerDescriptor,
+} from '../utils/enteringAnimation';
 
 export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
   {
     style,
     children,
+    provider,
+    googleMapId,
     region,
     camera,
     mapType = 'standard',
@@ -26,6 +33,8 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     customMapStyle,
     clusteringEnabled,
     mapPadding,
+    markerEnteringAnimation,
+    clusterEnteringAnimation,
     markers: markersProp,
     polylines: polylinesProp,
     polygons: polygonsProp,
@@ -44,6 +53,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
   },
   ref,
 ) {
+  const resolvedProvider = resolveMapProvider(provider);
   const hybridRef = useRef<NativeMapViewHybrid>(null);
   const {
     markers: collectedMarkers,
@@ -57,9 +67,13 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     hasPolygonPress,
     hasCirclePress,
   } = useCollectedOverlays(children);
+  const normalizedMarkersProp = useMemo(
+    () => markersProp?.map(normalizeMarkerDescriptor),
+    [markersProp],
+  );
 
   const markers =
-    markersProp != null ? markersProp : collectedMarkers;
+    normalizedMarkersProp != null ? normalizedMarkersProp : collectedMarkers;
   const polylines =
     polylinesProp != null ? polylinesProp : collectedPolylines;
   const polygons =
@@ -148,10 +162,13 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
 
   return (
     <NativeMapView
+      key={`${resolvedProvider}:${googleMapId ?? ''}`}
       style={style}
       hybridRef={callback((nativeRef) => {
         hybridRef.current = nativeRef;
       })}
+      provider={resolvedProvider}
+      googleMapId={googleMapId}
       mapType={mapType}
       region={region}
       camera={camera}
@@ -166,6 +183,8 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
       customMapStyle={customMapStyle}
       clusteringEnabled={clusteringEnabled}
       mapPadding={mapPadding}
+      markerEnteringAnimation={normalizeEnteringAnimation(markerEnteringAnimation)}
+      clusterEnteringAnimation={normalizeEnteringAnimation(clusterEnteringAnimation)}
       markers={markers}
       polylines={polylines}
       polygons={polygons}
