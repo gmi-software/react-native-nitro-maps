@@ -334,9 +334,15 @@ final class HybridMapView: HybridMapViewSpec {
     case .apple:
       return AppleMapProviderAdapter()
     case .google:
-      return GoogleMapProviderAdapter(googleMapId: _googleMapId)
+      do {
+        return try GoogleMapProviderAdapter(googleMapId: _googleMapId)
+      } catch {
+        return UnavailableMapProviderAdapter(error: error)
+      }
     case .openstreetmap, .mapbox:
-      preconditionFailure("Map provider \"\(provider)\" is not supported on iOS.")
+      return UnavailableMapProviderAdapter(
+        error: MapProviderConfigurationError.unsupportedIOSProvider(provider)
+      )
     }
   }
 

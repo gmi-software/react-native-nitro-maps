@@ -126,21 +126,11 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
           animation: marker.enteringAnimation,
           supportsScale: true
         )
-      } else if let cluster = view.annotation as? MapClusterAnnotation {
-        let animation: ResolvedOverlayEnteringAnimation
-        if cluster.enteringAnimation.kind == .system {
-          animation = ResolvedOverlayEnteringAnimation(
-            kind: .fade,
-            duration: 0.16,
-            delay: 0,
-            reduceMotion: .system
-          )
-        } else {
-          animation = cluster.enteringAnimation
-        }
+      } else if let cluster = view.annotation as? MapClusterAnnotation,
+                cluster.enteringAnimation.kind != .system {
         OverlayEnteringAnimationResolver.animateAnnotationView(
           view,
-          animation: animation,
+          animation: cluster.enteringAnimation,
           supportsScale: true
         )
       }

@@ -16,6 +16,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type AccessibilityRole,
+  type AccessibilityState,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -141,6 +143,9 @@ type ScalePressableProps = {
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
   hitSlop?: number;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
+  accessibilityLabel?: string;
 };
 
 const ScalePressable = memo(function ScalePressable({
@@ -148,6 +153,9 @@ const ScalePressable = memo(function ScalePressable({
   style,
   children,
   hitSlop,
+  accessibilityRole,
+  accessibilityState,
+  accessibilityLabel,
 }: ScalePressableProps) {
   const scale = useSharedValue(1);
 
@@ -158,6 +166,9 @@ const ScalePressable = memo(function ScalePressable({
   return (
     <AnimatedPressable
       hitSlop={hitSlop}
+      accessibilityRole={accessibilityRole}
+      accessibilityState={accessibilityState}
+      accessibilityLabel={accessibilityLabel}
       style={[style, animatedStyle]}
       onPress={onPress}
       onPressIn={() => {
@@ -341,6 +352,11 @@ const ScenarioDock = memo(function ScenarioDock({
                 <ScalePressable
                   key={option.id}
                   onPress={() => onSelectAnimation(option.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: option.id === animationOptionId,
+                  }}
+                  accessibilityLabel={`${option.label} entering animation`}
                   style={[
                     styles.optionChip,
                     option.id === animationOptionId && styles.optionChipActive,
@@ -581,7 +597,7 @@ export default function App() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [mapTypeIndex, setMapTypeIndex] = useState(0);
   const [providerIndex, setProviderIndex] = useState(0);
-  const [animationOptionIndex, setAnimationOptionIndex] = useState(2);
+  const [animationOptionIndex, setAnimationOptionIndex] = useState(0);
   const [status, setStatus] = useState('Waiting for map...');
   const [mapReady, setMapReady] = useState(false);
   const [dockExpanded, setDockExpanded] = useState(false);

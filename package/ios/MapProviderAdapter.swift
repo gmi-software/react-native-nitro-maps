@@ -47,3 +47,94 @@ protocol MapProviderAdapter: AnyObject {
   func fitToCoordinates(coordinates: [Coordinate], padding: EdgePadding?, animated: Bool?) throws
   func prepareForRecycle()
 }
+
+final class UnavailableMapProviderAdapter: MapProviderAdapter {
+  let contentView: UIView
+  private let error: Error
+
+  var mapType: MapType = .standard
+  var region: Region?
+  var camera: Camera?
+  var scrollEnabled: Bool?
+  var zoomEnabled: Bool?
+  var rotateEnabled: Bool?
+  var pitchEnabled: Bool?
+  var showsUserLocation: Bool?
+  var followsUserLocation: Bool?
+  var showsCompass: Bool?
+  var showsScale: Bool?
+  var customMapStyle: String?
+  var googleMapId: String?
+  var clusteringEnabled: Bool?
+  var mapPadding: EdgePadding?
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
+
+  var onRegionChange: ((Region) -> Void)?
+  var onRegionChangeComplete: ((Region) -> Void)?
+  var onMapReady: (() -> Void)?
+  var onPress: ((Coordinate) -> Void)?
+  var onLongPress: ((Coordinate) -> Void)?
+
+  var markers: [MarkerDescriptor]?
+  var polylines: [PolylineDescriptor]?
+  var polygons: [PolygonDescriptor]?
+  var circles: [CircleDescriptor]?
+
+  var onMarkerPress: ((String) -> Void)?
+  var onMarkerDragEnd: ((String, Coordinate) -> Void)?
+  var onPolylinePress: ((String) -> Void)?
+  var onPolygonPress: ((String) -> Void)?
+  var onCirclePress: ((String) -> Void)?
+  var onClusterPress: (([String], Coordinate) -> Void)?
+
+  init(error: Error) {
+    self.error = error
+
+    let view = UIView()
+    view.backgroundColor = .systemBackground
+
+    let label = UILabel()
+    label.translatesAutoresizingMaskIntoConstraints = false
+    label.text = error.localizedDescription
+    label.textAlignment = .center
+    label.textColor = .secondaryLabel
+    label.font = .preferredFont(forTextStyle: .footnote)
+    label.numberOfLines = 0
+
+    view.addSubview(label)
+    NSLayoutConstraint.activate([
+      label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+      label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+      label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+    ])
+
+    contentView = view
+  }
+
+  func fetchCamera() throws -> Promise<Camera> {
+    Promise.rejected(withError: error)
+  }
+
+  func applyCamera(camera: Camera) throws {
+    throw error
+  }
+
+  func animateCamera(camera: Camera, duration: Double?) throws {
+    throw error
+  }
+
+  func getVisibleRegion() throws -> Promise<VisibleRegion> {
+    Promise.rejected(withError: error)
+  }
+
+  func fitToCoordinates(
+    coordinates: [Coordinate],
+    padding: EdgePadding?,
+    animated: Bool?
+  ) throws {
+    throw error
+  }
+
+  func prepareForRecycle() {}
+}

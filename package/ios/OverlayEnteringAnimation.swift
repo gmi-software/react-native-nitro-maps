@@ -2,7 +2,7 @@ import GoogleMaps
 import QuartzCore
 import UIKit
 
-enum ResolvedOverlayEnteringAnimationKind {
+enum ResolvedOverlayEnteringAnimationKind: Equatable {
   case none
   case system
   case fade
@@ -81,44 +81,97 @@ enum OverlayEnteringAnimationResolver {
 
   static func prepareGoogleMarker(_ marker: GMSMarker, animation: ResolvedOverlayEnteringAnimation) {
     marker.appearAnimation = .none
-    let markerAnimation = googleMarkerAnimation(animation)
-    guard shouldRun(markerAnimation) else {
+    marker.iconView = nil
+    marker.tracksViewChanges = false
+
+    guard shouldRun(animation) else {
       return
     }
-    guard markerAnimation.kind != .system else {
+
+    switch animation.kind {
+    case .none:
+      return
+    case .system:
       marker.appearAnimation = .pop
-      return
-    }
-    marker.opacity = 0
-  }
-
-  static func animateGoogleMarker(_ marker: GMSMarker, animation: ResolvedOverlayEnteringAnimation) {
-    let markerAnimation = googleMarkerAnimation(animation)
-    guard shouldRun(markerAnimation), markerAnimation.kind != .system else {
-      return
-    }
-
-    DispatchQueue.main.asyncAfter(deadline: .now() + markerAnimation.delay) {
-      CATransaction.begin()
-      CATransaction.setAnimationDuration(markerAnimation.duration)
-      CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
-      marker.opacity = 1
-      CATransaction.commit()
+    case .fade:
+      marker.appearAnimation = .fadeIn
+    case .fadeScale:
+      prepareGoogleFadeScaleMarker(marker)
     }
   }
 
-  private static func googleMarkerAnimation(
-    _ animation: ResolvedOverlayEnteringAnimation
-  ) -> ResolvedOverlayEnteringAnimation {
-    guard animation.kind == .fadeScale else {
-      return animation
+  static func canAnimateGoogleMarker(_ animation: ResolvedOverlayEnteringAnimation) -> Bool {
+    shouldRun(animation)
+  }
+
+  static func usesBatchedGoogleMarkerAnimation(_ animation: ResolvedOverlayEnteringAnimation) -> Bool {
+    shouldRun(animation) && animation.kind == .fadeScale
+  }
+
+  static func showGoogleMarkerWithoutAnimation(_ marker: GMSMarker) {
+    marker.appearAnimation = .none
+    marker.iconView = nil
+    marker.tracksViewChanges = false
+    marker.opacity = 1
+  }
+
+  static func animateGoogleMarkers(
+    _ markers: [GMSMarker],
+    animation: ResolvedOverlayEnteringAnimation
+  ) {
+    guard shouldRun(animation), animation.kind == .fadeScale else {
+      return
     }
-    return ResolvedOverlayEnteringAnimation(
-      kind: .fade,
-      duration: animation.duration,
-      delay: animation.delay,
-      reduceMotion: animation.reduceMotion
+    guard !markers.isEmpty else {
+      return
+    }
+
+    let runAnimations = {
+      for marker in markers where marker.map != nil {
+        animateGoogleFadeScaleMarker(marker, duration: animation.duration)
+      }
+    }
+
+    if animation.delay > 0 {
+      DispatchQueue.main.asyncAfter(deadline: .now() + animation.delay) {
+        runAnimations()
+      }
+    } else {
+      runAnimations()
+    }
+  }
+
+  private static func prepareGoogleFadeScaleMarker(_ marker: GMSMarker) {
+    let image = marker.icon ?? GMSMarker.markerImage(with: nil)
+    let imageView = UIImageView(
+      frame: CGRect(origin: .zero, size: image.size)
     )
+    imageView.image = image
+    imageView.contentMode = .scaleAspectFit
+    imageView.alpha = 0
+    imageView.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
+
+    marker.iconView = imageView
+    marker.tracksViewChanges = true
+  }
+
+  private static func animateGoogleFadeScaleMarker(_ marker: GMSMarker, duration: TimeInterval) {
+    guard let iconView = marker.iconView else {
+      return
+    }
+
+    marker.tracksViewChanges = true
+    UIView.animate(
+      withDuration: duration,
+      delay: 0,
+      options: [.allowUserInteraction, .beginFromCurrentState, .curveEaseOut]
+    ) {
+      iconView.alpha = 1
+      iconView.transform = .identity
+    } completion: { _ in
+      marker.tracksViewChanges = false
+      marker.iconView = nil
+    }
   }
 
   private static func seconds(
