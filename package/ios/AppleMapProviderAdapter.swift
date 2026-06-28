@@ -134,6 +134,18 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     }
   }
 
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    didSet {
+      overlayController.markerEnteringAnimation = markerEnteringAnimation
+    }
+  }
+
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    didSet {
+      overlayController.clusterEnteringAnimation = clusterEnteringAnimation
+    }
+  }
+
   var onRegionChange: ((Region) -> Void)?
   var onRegionChangeComplete: ((Region) -> Void)?
   var onMapReady: (() -> Void)? {
@@ -430,6 +442,8 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     googleMapId = nil
     clusteringEnabled = nil
     mapPadding = nil
+    markerEnteringAnimation = nil
+    clusterEnteringAnimation = nil
     view.mapType = .standard
     view.isScrollEnabled = true
     view.isZoomEnabled = true

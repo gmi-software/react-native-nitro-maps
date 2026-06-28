@@ -1,5 +1,54 @@
 import type { Coordinate } from './coordinate';
 
+export type OverlayEnteringAnimationPreset = 'fade' | 'fade-scale';
+
+export type OverlayEnteringAnimationReduceMotion = 'system' | 'never';
+
+export interface OverlayEnteringAnimationConfig {
+  /** Cross-provider entering animation preset. */
+  preset: OverlayEnteringAnimationPreset;
+
+  /** Animation duration in milliseconds. */
+  duration?: number;
+
+  /** Delay before starting the animation, in milliseconds. */
+  delay?: number;
+
+  /** Whether system Reduced Motion settings should disable the animation. */
+  reduceMotion?: OverlayEnteringAnimationReduceMotion;
+}
+
+export type OverlayEnteringAnimation =
+  | false
+  | 'system'
+  | OverlayEnteringAnimationConfig;
+
+/**
+ * Descriptor for bulk marker rendering.
+ */
+export interface MarkerDescriptor {
+  /** Unique identifier for the marker. */
+  id: string;
+
+  /** Geographic position of the marker. */
+  coordinate: Coordinate;
+
+  /** Title displayed in the callout. */
+  title?: string;
+
+  /** Subtitle displayed in the callout. */
+  subtitle?: string;
+
+  /** Whether the marker is draggable. */
+  draggable?: boolean;
+
+  /** Whether the marker participates in clustering when enabled on the map. */
+  clusterable?: boolean;
+
+  /** Entering animation override for this marker. */
+  enteringAnimation?: OverlayEnteringAnimation;
+}
+
 /**
  * Props for a map marker overlay.
  */
@@ -21,6 +70,9 @@ export interface MarkerProps {
 
   /** Whether the marker participates in clustering when enabled on the map. */
   clusterable?: boolean;
+
+  /** Entering animation override for this marker. */
+  enteringAnimation?: OverlayEnteringAnimation;
 
   /** Called when the marker is pressed. */
   onPress?: () => void;

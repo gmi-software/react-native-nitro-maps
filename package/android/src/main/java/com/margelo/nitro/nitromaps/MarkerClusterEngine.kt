@@ -22,7 +22,7 @@ internal sealed interface ClusterElement {
     val memberIds: List<String>,
     val bounds: LatLngBounds,
   ) : ClusterElement {
-    override val diffKey: String get() = "c:$key:$count"
+    override val diffKey: String get() = "c:$key"
   }
 }
 

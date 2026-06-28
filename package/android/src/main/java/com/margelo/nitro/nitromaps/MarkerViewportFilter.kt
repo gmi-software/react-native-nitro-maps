@@ -49,6 +49,7 @@ internal object MarkerViewportFilter {
       hash = 31 * hash + (descriptor.subtitle?.hashCode() ?: 0)
       hash = 31 * hash + (descriptor.draggable?.hashCode() ?: 0)
       hash = 31 * hash + (descriptor.clusterable?.hashCode() ?: 0)
+      hash = 31 * hash + (descriptor.enteringAnimation?.hashCode() ?: 0)
     }
     return hash
   }

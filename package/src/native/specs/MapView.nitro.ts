@@ -10,6 +10,7 @@ import type { EdgePadding, Region, VisibleRegion } from '../../types/region';
 import type {
   CircleDescriptor,
   MarkerDescriptor,
+  OverlayEnteringAnimationDescriptor,
   PolygonDescriptor,
   PolylineDescriptor,
 } from './overlays';
@@ -71,6 +72,12 @@ export interface MapViewProps extends HybridViewProps {
 
   /** Padding applied to map edges, in density-independent pixels. */
   mapPadding?: EdgePadding;
+
+  /** Default entering animation for marker overlays. */
+  markerEnteringAnimation?: OverlayEnteringAnimationDescriptor;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimationDescriptor;
 
   /** Called when the visible region changes during user interaction. */
   onRegionChange?: (region: Region) => void;

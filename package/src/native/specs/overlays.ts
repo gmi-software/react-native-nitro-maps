@@ -1,5 +1,30 @@
 import type { Coordinate } from '../../types/coordinate';
 
+export type OverlayEnteringAnimationKind =
+  | 'none'
+  | 'system'
+  | 'fade'
+  | 'fade-scale';
+
+export type OverlayEnteringAnimationReduceMotion = 'system' | 'never';
+
+/**
+ * Serialized entering animation config passed to native map providers.
+ */
+export interface OverlayEnteringAnimationDescriptor {
+  /** Resolved animation kind. */
+  kind: OverlayEnteringAnimationKind;
+
+  /** Animation duration in milliseconds. */
+  duration?: number;
+
+  /** Delay before starting the animation, in milliseconds. */
+  delay?: number;
+
+  /** Whether system Reduced Motion settings should disable the animation. */
+  reduceMotion?: OverlayEnteringAnimationReduceMotion;
+}
+
 /**
  * Serialized marker overlay passed to the native map view.
  */
@@ -21,6 +46,9 @@ export interface MarkerDescriptor {
 
   /** Whether the marker participates in clustering when enabled on the map. */
   clusterable?: boolean;
+
+  /** Entering animation override for this marker. */
+  enteringAnimation?: OverlayEnteringAnimationDescriptor;
 }
 
 /**

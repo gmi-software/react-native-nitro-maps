@@ -57,17 +57,27 @@ enum MarkerClusterEngine {
       return hasher.finalize()
     }
 
-    func makeAnnotation() -> MKAnnotation {
+    func makeAnnotation(
+      markerEnteringAnimation: OverlayEnteringAnimationDescriptor?,
+      clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
+    ) -> MKAnnotation {
       switch self {
       case let .single(descriptor):
-        return MapMarkerAnnotation(descriptor: descriptor)
+        return MapMarkerAnnotation(
+          descriptor: descriptor,
+          enteringAnimation: OverlayEnteringAnimationResolver.resolve(
+            descriptor.enteringAnimation,
+            fallback: markerEnteringAnimation
+          )
+        )
       case let .cluster(key, coordinate, count, memberIds, region):
         return MapClusterAnnotation(
           id: key,
           coordinate: coordinate,
           count: count,
           memberIds: memberIds,
-          region: region
+          region: region,
+          enteringAnimation: OverlayEnteringAnimationResolver.resolve(clusterEnteringAnimation)
         )
       }
     }

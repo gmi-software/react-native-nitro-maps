@@ -4,10 +4,18 @@ import UIKit
 
 final class GoogleMapOverlayController {
   private static let clusterCellPoints: Double = 96
+  // GMSMarker entering animations are main-thread work; cap them per diff so
+  // bulk viewport refreshes do not block active Google Maps gestures.
+  private static let maximumAnimatedMarkersPerDiff = 96
 
   private enum MarkerPayload {
     case marker(String)
     case cluster(memberIds: [String], region: MKCoordinateRegion)
+  }
+
+  private struct MarkerAnimationBatch {
+    let animation: ResolvedOverlayEnteringAnimation
+    var markers: [GMSMarker]
   }
 
   private weak var mapView: GMSMapView?
@@ -26,6 +34,8 @@ final class GoogleMapOverlayController {
   var onCirclePress: ((String) -> Void)?
   var onClusterPress: (([String], Coordinate) -> Void)?
   var animateToClusterRegion: ((MKCoordinateRegion) -> Void)?
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
 
   init(mapView: GMSMapView) {
     self.mapView = mapView
@@ -56,7 +66,10 @@ final class GoogleMapOverlayController {
     reapplyMarkers()
   }
 
-  func refreshViewportMarkers() {
+  func refreshViewportMarkers(
+    animateEntering: Bool = true,
+    animationBudget: Int = maximumAnimatedMarkersPerDiff
+  ) {
     guard let mapView, usesViewportPipeline else {
       return
     }
@@ -66,12 +79,20 @@ final class GoogleMapOverlayController {
       region: mapView.currentNitroRegion().toMKCoordinateRegion(),
       viewSize: mapView.bounds.size,
       apply: { [weak self] diff in
-        self?.applyDiff(diff)
+        self?.applyDiff(
+          diff,
+          animateEntering: animateEntering,
+          animationBudget: animationBudget
+        )
       }
     )
   }
 
-  func scheduleViewportRefresh(immediate: Bool = false) {
+  func scheduleViewportRefresh(
+    immediate: Bool = false,
+    animateEntering: Bool = true,
+    animationBudget: Int = maximumAnimatedMarkersPerDiff
+  ) {
     guard let mapView, usesViewportPipeline else {
       return
     }
@@ -82,7 +103,11 @@ final class GoogleMapOverlayController {
       viewSize: mapView.bounds.size,
       immediate: immediate,
       apply: { [weak self] diff in
-        self?.applyDiff(diff)
+        self?.applyDiff(
+          diff,
+          animateEntering: animateEntering,
+          animationBudget: animationBudget
+        )
       }
     )
   }
@@ -171,7 +196,11 @@ final class GoogleMapOverlayController {
     )
   }
 
-  private func applyDiff(_ diff: MarkerRenderDiff) {
+  private func applyDiff(
+    _ diff: MarkerRenderDiff,
+    animateEntering: Bool = true,
+    animationBudget: Int = maximumAnimatedMarkersPerDiff
+  ) {
     guard let mapView else {
       return
     }
@@ -181,11 +210,32 @@ final class GoogleMapOverlayController {
       markerVersions.removeValue(forKey: key)
     }
 
+    var animationBatches: [MarkerAnimationBatch] = []
+    var remainingAnimationBudget = animateEntering ? max(0, animationBudget) : 0
+
     for entry in diff.added {
       let marker = makeMarker(for: entry.element)
+      let animation = enteringAnimation(for: entry.element)
+      let shouldAnimate = animateEntering
+        && remainingAnimationBudget > 0
+        && OverlayEnteringAnimationResolver.canAnimateGoogleMarker(animation)
+
+      if shouldAnimate {
+        OverlayEnteringAnimationResolver.prepareGoogleMarker(marker, animation: animation)
+        if OverlayEnteringAnimationResolver.usesBatchedGoogleMarkerAnimation(animation) {
+          append(marker, animation: animation, to: &animationBatches)
+        }
+        remainingAnimationBudget -= 1
+      } else {
+        OverlayEnteringAnimationResolver.showGoogleMarkerWithoutAnimation(marker)
+      }
       marker.map = mapView
       markers[entry.key] = marker
       markerVersions[entry.key] = entry.version
+    }
+
+    for batch in animationBatches {
+      OverlayEnteringAnimationResolver.animateGoogleMarkers(batch.markers, animation: batch.animation)
     }
 
     for entry in diff.retained {
@@ -201,6 +251,32 @@ final class GoogleMapOverlayController {
     let marker = GMSMarker()
     updateMarker(marker, with: element)
     return marker
+  }
+
+  private func append(
+    _ marker: GMSMarker,
+    animation: ResolvedOverlayEnteringAnimation,
+    to batches: inout [MarkerAnimationBatch]
+  ) {
+    for index in batches.indices where batches[index].animation == animation {
+      batches[index].markers.append(marker)
+      return
+    }
+    batches.append(MarkerAnimationBatch(animation: animation, markers: [marker]))
+  }
+
+  private func enteringAnimation(
+    for element: MarkerClusterEngine.Element
+  ) -> ResolvedOverlayEnteringAnimation {
+    switch element {
+    case let .single(descriptor):
+      return OverlayEnteringAnimationResolver.resolve(
+        descriptor.enteringAnimation,
+        fallback: markerEnteringAnimation
+      )
+    case .cluster:
+      return OverlayEnteringAnimationResolver.resolve(clusterEnteringAnimation)
+    }
   }
 
   private func updateMarker(_ marker: GMSMarker, with element: MarkerClusterEngine.Element) {

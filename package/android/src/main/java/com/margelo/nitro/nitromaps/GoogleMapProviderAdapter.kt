@@ -180,6 +180,7 @@ class GoogleMapProviderAdapter(
     get() = _clusteringEnabled
     set(value) {
       _clusteringEnabled = value
+      updateOverlayViewportSize()
       overlayController.setClusteringEnabled(value == true)
       googleMap?.let { map ->
         if (value == true) {
@@ -207,6 +208,22 @@ class GoogleMapProviderAdapter(
       applyMapPadding()
     }
 
+  private var _markerEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
+  override var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+    get() = _markerEnteringAnimation
+    set(value) {
+      _markerEnteringAnimation = value
+      overlayController.markerEnteringAnimation = value
+    }
+
+  private var _clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
+  override var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
+    get() = _clusterEnteringAnimation
+    set(value) {
+      _clusterEnteringAnimation = value
+      overlayController.clusterEnteringAnimation = value
+    }
+
   override var onRegionChange: ((region: Region) -> Unit)? = null
   override var onRegionChangeComplete: ((region: Region) -> Unit)? = null
   override var onMapReady: (() -> Unit)? = null
@@ -219,6 +236,7 @@ class GoogleMapProviderAdapter(
     set(value) {
       _markers = value
       if (googleMap != null) {
+        updateOverlayViewportSize()
         overlayController.setMarkers(value)
       } else {
         pendingMarkers = value
@@ -383,6 +401,7 @@ class GoogleMapProviderAdapter(
     applyMapPadding(map)
     applyCustomMapStyle(map)
     overlayController.setGoogleMap(map)
+    updateOverlayViewportSize()
     overlayController.setClusteringEnabled(_clusteringEnabled == true)
     syncMarkerPressHandlers()
 
@@ -584,6 +603,7 @@ class GoogleMapProviderAdapter(
 
   private fun runWhenMapViewLaidOut(block: () -> Unit) {
     if (view.width > 0 && view.height > 0) {
+      updateOverlayViewportSize()
       block()
       return
     }
@@ -596,10 +616,15 @@ class GoogleMapProviderAdapter(
           }
 
           view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+          updateOverlayViewportSize()
           block()
         }
       },
     )
+  }
+
+  private fun updateOverlayViewportSize() {
+    overlayController.setViewportSize(view.width, view.height)
   }
 
   private fun runOnMain(block: () -> Unit) {
@@ -737,6 +762,10 @@ class GoogleMapProviderAdapter(
     _customMapStyle = null
     _clusteringEnabled = null
     _mapPadding = null
+    _markerEnteringAnimation = null
+    _clusterEnteringAnimation = null
+    overlayController.markerEnteringAnimation = null
+    overlayController.clusterEnteringAnimation = null
     googleMap?.mapType = MapType.STANDARD.toGoogleMapType()
     googleMap?.isMyLocationEnabled = false
     googleMap?.setMapStyle(null)

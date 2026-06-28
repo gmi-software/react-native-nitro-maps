@@ -83,6 +83,7 @@ Delivered incrementally during Phases 3–5; polished for platform consistency i
 | Overlay architecture  | Per-view native vs data-driven descriptors | Data-driven (Option B)                             |
 | Clustering library    | Custom vs platform-native                  | Platform-native (MKClusterAnnotation / maps-utils) |
 | Provider architecture | In-place SDK switching vs adapter remount  | Provider adapter + React remount                   |
+| Overlay animations    | Reanimated core path vs native descriptors | Native descriptor animations; Reanimated optional  |
 | Offline support       | Tile caching strategy                      | Future consideration                               |
 
 ## Future provider work

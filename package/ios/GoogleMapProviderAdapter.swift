@@ -6,6 +6,9 @@ import QuartzCore
 import UIKit
 
 final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
+  private static let liveGestureRefreshInterval: CFTimeInterval = 0.18
+  private static let liveGestureAnimationBudget = 24
+
   private var isProgrammaticUpdate = false
   private var pendingProgrammaticUpdateIDs: [Int] = []
   private var nextProgrammaticUpdateID = 0
@@ -30,7 +33,6 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   }
 
   lazy var view: GMSMapView = {
-    GoogleMapsAPIKey.configureIfNeeded()
     let camera = self.camera?.toGMSCameraPosition()
       ?? GMSCameraPosition(latitude: 0, longitude: 0, zoom: 10)
     let mapView: GMSMapView
@@ -55,7 +57,8 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     return mapView
   }()
 
-  init(googleMapId: String?) {
+  init(googleMapId: String?) throws {
+    try GoogleMapsAPIKey.configureIfNeeded()
     _googleMapId = googleMapId
     super.init()
   }
@@ -152,6 +155,18 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   var mapPadding: EdgePadding? {
     didSet {
       applyMapPadding(to: view)
+    }
+  }
+
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    didSet {
+      overlayController.markerEnteringAnimation = markerEnteringAnimation
+    }
+  }
+
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    didSet {
+      overlayController.clusterEnteringAnimation = clusterEnteringAnimation
     }
   }
 
@@ -281,6 +296,8 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     googleMapId = nil
     clusteringEnabled = nil
     mapPadding = nil
+    markerEnteringAnimation = nil
+    clusterEnteringAnimation = nil
   }
 
   private func applyRegion(_ region: Region, animated: Bool = false) {
@@ -363,6 +380,7 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
   private func startGestureMarkerRefresh() {
     isUserGestureMoving = true
     lastLiveMarkerRefreshTime = 0
+    refreshGestureMarkersIfNeeded()
   }
 
   private func refreshGestureMarkersIfNeeded() {
@@ -371,18 +389,20 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     }
 
     let now = CACurrentMediaTime()
-    guard now - lastLiveMarkerRefreshTime >= MarkerRenderPipeline.liveRefreshInterval else {
+    guard now - lastLiveMarkerRefreshTime >= Self.liveGestureRefreshInterval else {
       return
     }
 
     lastLiveMarkerRefreshTime = now
-    overlayController.refreshViewportMarkers()
+    overlayController.refreshViewportMarkers(
+      animateEntering: true,
+      animationBudget: Self.liveGestureAnimationBudget
+    )
   }
 
   private func stopGestureMarkerRefresh() {
     isUserGestureMoving = false
     lastLiveMarkerRefreshTime = 0
-    refreshVisibleMarkers()
   }
 
   private func animateToClusterRegion(_ region: MKCoordinateRegion) {
@@ -514,6 +534,7 @@ extension GoogleMapProviderAdapter: GMSMapViewDelegate {
 
   func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
     stopGestureMarkerRefresh()
+    refreshVisibleMarkers()
     notifyRegionChange(complete: true)
     endProgrammaticUpdate()
     notifyMapReadyIfNeeded()

@@ -42,6 +42,7 @@ export const landmarksScenario: MapScenario = {
       title: 'Warsaw Uprising Museum',
       subtitle: 'Interactive history museum',
       draggable: true,
+      enteringAnimation: false,
     },
   ],
 };
