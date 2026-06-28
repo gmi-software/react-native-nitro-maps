@@ -1,14 +1,14 @@
 import { Image } from 'react-native';
+import markerBlue from '../assets/markerblue.png';
+import markerGreen from '../assets/markergreen.png';
+import markerRed from '../assets/markerred.png';
+import markerViolet from '../assets/markerviolet.png';
+import poiNavigation from '../assets/poiNavigation.png';
+import poiRestaurant from '../assets/poiRestaurant.png';
+import poiStar from '../assets/poiStar.png';
 import type { MapScenario } from './types';
 
-const markerRed = require('../assets/markerred.png');
 const markerRedSource = Image.resolveAssetSource(markerRed);
-const markerBlue = require('../assets/markerblue.png');
-const markerGreen = require('../assets/markergreen.png');
-const markerViolet = require('../assets/markerviolet.png');
-const poiStar = require('../assets/poiStar.png');
-const poiRestaurant = require('../assets/poiRestaurant.png');
-const poiNavigation = require('../assets/poiNavigation.png');
 
 /** Leaflet Color Markers — logical size 25×41 dp (@2x bitmaps). */
 const LEAFLET_MARKER = {
@@ -70,7 +70,7 @@ export function createCustomMarkerImagesScenario(
           longitude,
         },
         title: 'Bundled asset',
-        subtitle: 'Leaflet red pin · require()',
+        subtitle: 'Leaflet red pin · bundled asset',
         image: markerRed,
         anchor: PIN_ANCHOR,
       },

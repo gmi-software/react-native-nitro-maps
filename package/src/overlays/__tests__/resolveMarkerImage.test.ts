@@ -64,15 +64,8 @@ describe('markerImageFromResolvedAsset', () => {
     expect(isMarkerImage({ uri: 'https://example.com/pin.png', width: 'bad' })).toBe(
       false,
     );
-    expect(
-      isMarkerImage({
-        uri: 'file:///pin.png',
-        width: 32,
-        height: 32,
-        headers: { Authorization: 'Bearer token' },
-      }),
-    ).toBe(false);
     expect(isMarkerImage(null)).toBe(false);
+    expect(isMarkerImage({ uri: '' })).toBe(false);
   });
 });
 
@@ -98,14 +91,13 @@ describe('resolveMarkerImage', () => {
     expect(resolveAssetSourceMock).toHaveBeenCalledWith(99);
   });
 
-  test('resolves non-MarkerImage uri sources through resolveAssetSource', () => {
-    const source = { uri: 'https://example.com/pin.png', cache: 'default' as const };
+  test('passes through uri-only sources as MarkerImage without resolveAssetSource', () => {
+    const source = { uri: 'https://example.com/pin.png' };
 
     expect(resolveMarkerImage(source)).toEqual({
       uri: 'https://example.com/pin.png',
     });
-    expect(resolveAssetSourceMock).toHaveBeenCalledTimes(1);
-    expect(resolveAssetSourceMock).toHaveBeenCalledWith(source);
+    expect(resolveAssetSourceMock).not.toHaveBeenCalled();
   });
 
   test('passes through MarkerImage objects unchanged', () => {
@@ -143,7 +135,6 @@ describe('resolveMarkerImage', () => {
       width: 24,
       height: 24,
       scale: 3,
-      cache: 'default' as const,
     };
     const resolved = resolveMarkerImage(source);
     const cached = resolveMarkerImage({
@@ -154,6 +145,6 @@ describe('resolveMarkerImage', () => {
     });
 
     expect(cached).toBe(resolved);
-    expect(resolveAssetSourceMock).toHaveBeenCalledTimes(1);
+    expect(resolveAssetSourceMock).not.toHaveBeenCalled();
   });
 });

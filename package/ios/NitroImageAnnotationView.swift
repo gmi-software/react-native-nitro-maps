@@ -28,7 +28,7 @@ final class NitroImageAnnotationView: MKAnnotationView {
     guard let imageDescriptor = marker.image else {
       loadToken = nil
       self.image = nil
-      centerOffset = marker.centerOffsetPoint
+      centerOffset = marker.centerOffset(forImageSize: .zero)
       return
     }
 
@@ -43,11 +43,19 @@ final class NitroImageAnnotationView: MKAnnotationView {
     applyLayout(for: marker, imageSize: .zero)
 
     MarkerImageLoader.load(imageDescriptor) { [weak self] uiImage in
-      guard let self,
-            let marker = self.annotation as? MapMarkerAnnotation,
+      guard let self else { return }
+
+      guard let marker = self.annotation as? MapMarkerAnnotation,
             let image = marker.image,
             MarkerImageLoader.cacheKey(for: image) == token else {
+        if self.loadToken == token {
+          self.loadToken = nil
+        }
         return
+      }
+
+      if uiImage == nil, self.loadToken == token {
+        self.loadToken = nil
       }
 
       self.image = uiImage

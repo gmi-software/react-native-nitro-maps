@@ -1,8 +1,6 @@
-import type { ImageSourcePropType } from 'react-native';
-import type { MarkerImage } from '../native/specs/overlays';
+import type { MarkerImage, MarkerImageSource } from '../native/specs/overlays';
 import { resolveAssetSource } from './assetSourceResolver';
 import { LruCache } from './lruCache';
-import { markerImageCacheKey } from './markerImageCacheKey';
 import {
   isMarkerImage,
   markerImageFromResolvedAsset,
@@ -11,8 +9,12 @@ import {
 const MARKER_IMAGE_CACHE_SIZE = 64;
 const resolvedImageCache = new LruCache<string, MarkerImage>(MARKER_IMAGE_CACHE_SIZE);
 
+function markerImageCacheKey(image: MarkerImage): string {
+  return `${image.uri}|${image.width ?? ''}|${image.height ?? ''}|${image.scale ?? ''}`;
+}
+
 export function resolveMarkerImage(
-  source: ImageSourcePropType | MarkerImage | undefined,
+  source: MarkerImageSource | undefined,
 ): MarkerImage | undefined {
   if (source == null) {
     return undefined;
@@ -42,14 +44,9 @@ export function resolveMarkerImage(
     return resolved;
   }
 
-  const resolved = markerImageFromResolvedAsset(resolveAssetSource(source));
-  if (resolved != null) {
-    resolvedImageCache.set(markerImageCacheKey(resolved), resolved);
-  }
-  return resolved;
+  return undefined;
 }
 
-/** @internal Clears the module-level image resolution cache (tests only). */
 export function clearResolvedMarkerImageCacheForTests(): void {
   resolvedImageCache.clear();
 }

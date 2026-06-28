@@ -13,6 +13,7 @@ fun MarkerDescriptor.toMarkerOptions(): MarkerOptions =
 internal fun MarkerDescriptor.effectiveGoogleMapsAnchor(
   widthPx: Float,
   heightPx: Float,
+  density: Float,
 ): Pair<Float, Float> {
   val anchorX = anchor?.x?.toFloat() ?: 0.5f
   val anchorY = anchor?.y?.toFloat() ?: 1.0f
@@ -20,7 +21,7 @@ internal fun MarkerDescriptor.effectiveGoogleMapsAnchor(
     return anchorX to anchorY
   }
 
-  val offsetX = centerOffset?.x?.toFloat() ?: 0f
-  val offsetY = centerOffset?.y?.toFloat() ?: 0f
-  return (anchorX - offsetX / widthPx) to (anchorY - offsetY / heightPx)
+  val offsetXPx = (centerOffset?.x?.toFloat() ?: 0f) * density
+  val offsetYPx = (centerOffset?.y?.toFloat() ?: 0f) * density
+  return (anchorX - offsetXPx / widthPx) to (anchorY - offsetYPx / heightPx)
 }

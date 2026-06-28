@@ -25,7 +25,13 @@ internal class MarkerIconFactory(
   private val sizeCache = object : LruCache<String, Pair<Float, Float>>(64) {}
   private val mainHandler = Handler(Looper.getMainLooper())
   private val appliedIconKeys = WeakHashMap<Marker, String>()
-  private val pendingIconKeys = WeakHashMap<Marker, String>()
+  private val pendingIconLoads = WeakHashMap<Marker, PendingIconLoad>()
+  private val iconLoadGeneration = WeakHashMap<Marker, Int>()
+
+  private data class PendingIconLoad(
+    val iconKey: String,
+    var onIconApplied: () -> Unit,
+  )
 
   fun applyVisualProps(
     descriptor: MarkerDescriptor,
@@ -51,7 +57,7 @@ internal class MarkerIconFactory(
     } else {
       defaultMarkerDisplaySizePx()
     }
-    val (anchorX, anchorY) = descriptor.effectiveGoogleMapsAnchor(size.first, size.second)
+    val (anchorX, anchorY) = descriptor.effectiveGoogleMapsAnchor(size.first, size.second, density)
     marker.setAnchor(anchorX, anchorY)
   }
 
@@ -65,7 +71,7 @@ internal class MarkerIconFactory(
     onIconApplied: () -> Unit,
   ) {
     if (image == null) {
-      if (isIconKeyCurrent(marker, DEFAULT_ICON_KEY)) {
+      if (isIconApplied(marker, DEFAULT_ICON_KEY)) {
         return
       }
       marker.setIcon(BitmapDescriptorFactory.defaultMarker())
@@ -75,8 +81,15 @@ internal class MarkerIconFactory(
     }
 
     val iconKey = cacheKey(image)
-    if (isIconKeyCurrent(marker, iconKey)) {
+    if (isIconApplied(marker, iconKey)) {
       return
+    }
+
+    pendingIconLoads[marker]?.let { pending ->
+      if (pending.iconKey == iconKey) {
+        pending.onIconApplied = onIconApplied
+        return
+      }
     }
 
     icon(image)?.let { cached ->
@@ -86,17 +99,28 @@ internal class MarkerIconFactory(
       return
     }
 
-    setPending(marker, iconKey)
+    val generation = beginPendingLoad(marker, iconKey, onIconApplied)
     loadIconAsync(image) { loaded ->
-      if (loaded != null && isMarkerActive() && isIconKeyCurrent(marker, iconKey)) {
-        marker.setIcon(loaded)
-        setApplied(marker, iconKey)
-        onIconApplied()
+      if (iconLoadGeneration[marker] != generation) {
+        return@loadIconAsync
       }
+
+      val callback = pendingIconLoads.remove(marker)?.onIconApplied
+      if (!isMarkerActive()) {
+        return@loadIconAsync
+      }
+
+      if (loaded == null) {
+        return@loadIconAsync
+      }
+
+      marker.setIcon(loaded)
+      setApplied(marker, iconKey)
+      callback?.invoke()
     }
   }
 
-  fun displaySizePx(image: MarkerImage): Pair<Float, Float>? {
+  private fun displaySizePx(image: MarkerImage): Pair<Float, Float>? {
     val key = cacheKey(image)
     sizeCache.get(key)?.let { return it }
 
@@ -114,14 +138,14 @@ internal class MarkerIconFactory(
     return size
   }
 
-  fun defaultMarkerDisplaySizePx(): Pair<Float, Float> =
+  private fun defaultMarkerDisplaySizePx(): Pair<Float, Float> =
     (DEFAULT_MARKER_WIDTH_DP * density) to (DEFAULT_MARKER_HEIGHT_DP * density)
 
-  fun cacheKey(image: MarkerImage): String {
+  private fun cacheKey(image: MarkerImage): String {
     return "${image.uri}|${image.width ?: ""}|${image.height ?: ""}|${image.scale ?: ""}"
   }
 
-  fun icon(image: MarkerImage): BitmapDescriptor? {
+  private fun icon(image: MarkerImage): BitmapDescriptor? {
     val key = cacheKey(image)
     cache.get(key)?.let { return it }
 
@@ -129,7 +153,7 @@ internal class MarkerIconFactory(
     return cacheBitmap(key, bitmap)
   }
 
-  fun loadIconAsync(
+  private fun loadIconAsync(
     image: MarkerImage,
     onLoaded: (BitmapDescriptor?) -> Unit,
   ) {
@@ -150,16 +174,28 @@ internal class MarkerIconFactory(
     deliverOnMainThread { onLoaded(icon(image)) }
   }
 
-  private fun isIconKeyCurrent(marker: Marker, key: String): Boolean =
-    appliedIconKeys[marker] == key || pendingIconKeys[marker] == key
+  private fun isIconApplied(marker: Marker, key: String): Boolean =
+    appliedIconKeys[marker] == key
 
   private fun setApplied(marker: Marker, key: String) {
     appliedIconKeys[marker] = key
-    pendingIconKeys.remove(marker)
+    invalidatePendingLoad(marker)
   }
 
-  private fun setPending(marker: Marker, key: String) {
-    pendingIconKeys[marker] = key
+  private fun invalidatePendingLoad(marker: Marker) {
+    iconLoadGeneration[marker] = (iconLoadGeneration[marker] ?: 0) + 1
+    pendingIconLoads.remove(marker)
+  }
+
+  private fun beginPendingLoad(
+    marker: Marker,
+    iconKey: String,
+    onIconApplied: () -> Unit,
+  ): Int {
+    invalidatePendingLoad(marker)
+    val generation = iconLoadGeneration[marker]!!
+    pendingIconLoads[marker] = PendingIconLoad(iconKey, onIconApplied)
+    return generation
   }
 
   private fun deliverOnMainThread(block: () -> Unit) {
@@ -176,8 +212,8 @@ internal class MarkerIconFactory(
       connection.connectTimeout = 10_000
       connection.readTimeout = 10_000
       connection.getInputStream().use { stream ->
-        val decoded = BitmapFactory.decodeStream(stream) ?: return null
-        cacheBitmap(key, resizeBitmap(decoded, image))
+        val bitmap = decodeByteArray(stream.readBytes(), image) ?: return null
+        cacheBitmap(key, resizeBitmap(bitmap, image))
       }
     } catch (error: Exception) {
       Log.w(TAG, "Failed to load marker image: ${image.uri}", error)
@@ -209,8 +245,7 @@ internal class MarkerIconFactory(
 
     return try {
       context.assets.open(uri).use { stream ->
-        val decoded = BitmapFactory.decodeStream(stream) ?: return null
-        resizeBitmap(decoded, image)
+        decodeByteArray(stream.readBytes(), image)?.let { resizeBitmap(it, image) }
       }
     } catch (_: Exception) {
       null
@@ -218,13 +253,89 @@ internal class MarkerIconFactory(
   }
 
   private fun decodeFile(path: String, image: MarkerImage): Bitmap? {
-    val decoded = BitmapFactory.decodeFile(path) ?: return null
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(path, bounds)
+    val options = buildDecodeOptions(bounds.outWidth, bounds.outHeight, image) ?: return null
+    val decoded = BitmapFactory.decodeFile(path, options) ?: return null
     return resizeBitmap(decoded, image)
   }
 
   private fun decodeResource(resourceId: Int, image: MarkerImage): Bitmap? {
-    val decoded = BitmapFactory.decodeResource(context.resources, resourceId) ?: return null
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeResource(context.resources, resourceId, bounds)
+    val options = buildDecodeOptions(bounds.outWidth, bounds.outHeight, image) ?: return null
+    val decoded = BitmapFactory.decodeResource(context.resources, resourceId, options) ?: return null
     return resizeBitmap(decoded, image)
+  }
+
+  private fun decodeByteArray(bytes: ByteArray, image: MarkerImage): Bitmap? {
+    if (bytes.isEmpty()) {
+      return null
+    }
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    val options = buildDecodeOptions(bounds.outWidth, bounds.outHeight, image) ?: return null
+    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+  }
+
+  private fun targetDecodeSizePx(image: MarkerImage): Pair<Int, Int>? {
+    val widthDp = image.width ?: return null
+    val heightDp = image.height ?: return null
+    return (widthDp * density).toInt().coerceAtLeast(1) to (heightDp * density).toInt().coerceAtLeast(1)
+  }
+
+  private fun buildDecodeOptions(
+    sourceWidth: Int,
+    sourceHeight: Int,
+    image: MarkerImage,
+  ): BitmapFactory.Options? {
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      return null
+    }
+    val target = targetDecodeSizePx(image)
+    val sampleSize = computeInSampleSize(
+      sourceWidth = sourceWidth,
+      sourceHeight = sourceHeight,
+      reqWidth = target?.first,
+      reqHeight = target?.second,
+    )
+    return BitmapFactory.Options().apply {
+      inSampleSize = sampleSize
+      inScaled = false
+    }
+  }
+
+  private fun computeInSampleSize(
+    sourceWidth: Int,
+    sourceHeight: Int,
+    reqWidth: Int?,
+    reqHeight: Int?,
+  ): Int {
+    var sampleSize = 1
+
+    if (reqWidth != null && reqHeight != null) {
+      var halfWidth = sourceWidth / 2
+      var halfHeight = sourceHeight / 2
+      while (halfWidth / sampleSize >= reqWidth && halfHeight / sampleSize >= reqHeight) {
+        sampleSize *= 2
+      }
+    }
+
+    while (decodedPixelCount(sourceWidth, sourceHeight, sampleSize) > MAX_DECODE_PIXELS) {
+      sampleSize *= 2
+    }
+
+    while (maxOf(sourceWidth / sampleSize, sourceHeight / sampleSize) > MAX_DECODE_DIMENSION) {
+      sampleSize *= 2
+    }
+
+    return sampleSize
+  }
+
+  private fun decodedPixelCount(sourceWidth: Int, sourceHeight: Int, sampleSize: Int): Long {
+    val width = sourceWidth / sampleSize
+    val height = sourceHeight / sampleSize
+    return width.toLong() * height
   }
 
   private fun cacheBitmap(key: String, bitmap: Bitmap): BitmapDescriptor {
@@ -237,7 +348,6 @@ internal class MarkerIconFactory(
   private fun resizeBitmap(source: Bitmap, image: MarkerImage): Bitmap {
     val width = image.width ?: return source
     val height = image.height ?: return source
-    // width/height are dp; scale is asset metadata only (@2x/@3x), not a display multiplier.
     val targetWidth = (width * density).toInt().coerceAtLeast(1)
     val targetHeight = (height * density).toInt().coerceAtLeast(1)
 
@@ -253,6 +363,8 @@ internal class MarkerIconFactory(
     const val DEFAULT_ICON_KEY = "__default__"
     private const val DEFAULT_MARKER_WIDTH_DP = 40f
     private const val DEFAULT_MARKER_HEIGHT_DP = 52f
+    private const val MAX_DECODE_DIMENSION = 2048
+    private const val MAX_DECODE_PIXELS = 2048L * 2048L
 
     private val loadExecutor: ExecutorService = Executors.newSingleThreadExecutor()
   }

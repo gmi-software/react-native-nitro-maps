@@ -1,14 +1,7 @@
 import type { MarkerImage } from '../native/specs/overlays';
 
-export interface ResolvedAssetSource {
-  uri: string;
-  width?: number;
-  height?: number;
-  scale?: number;
-}
-
 export function markerImageFromResolvedAsset(
-  resolved: ResolvedAssetSource | null | undefined,
+  resolved: MarkerImage | null | undefined,
 ): MarkerImage | undefined {
   if (resolved == null || resolved.uri.length === 0) {
     return undefined;
@@ -22,8 +15,6 @@ export function markerImageFromResolvedAsset(
   };
 }
 
-const MARKER_IMAGE_KEYS = new Set(['uri', 'width', 'height', 'scale']);
-
 export function isMarkerImage(value: unknown): value is MarkerImage {
   if (typeof value !== 'object' || value == null) {
     return false;
@@ -31,7 +22,7 @@ export function isMarkerImage(value: unknown): value is MarkerImage {
 
   const record = value as Record<string, unknown>;
 
-  if (typeof record.uri !== 'string') {
+  if (typeof record.uri !== 'string' || record.uri.length === 0) {
     return false;
   }
 
@@ -45,12 +36,6 @@ export function isMarkerImage(value: unknown): value is MarkerImage {
 
   if (record.scale !== undefined && typeof record.scale !== 'number') {
     return false;
-  }
-
-  for (const key of Object.keys(record)) {
-    if (!MARKER_IMAGE_KEYS.has(key)) {
-      return false;
-    }
   }
 
   return true;

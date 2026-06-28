@@ -94,7 +94,6 @@ enum MarkerImageLoader {
       return uiImage
     }
 
-    // width/height are density-independent pixels; UIImage uses points (1:1 with dp).
     let targetSize = CGSize(width: CGFloat(width), height: CGFloat(height))
 
     if uiImage.size == targetSize {

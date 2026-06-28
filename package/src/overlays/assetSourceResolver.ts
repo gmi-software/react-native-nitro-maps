@@ -1,8 +1,8 @@
 import { Image, type ImageSourcePropType } from 'react-native';
-import type { ResolvedAssetSource } from './markerImageFromResolvedAsset';
+import type { MarkerImage } from '../native/specs/overlays';
 
 export function resolveAssetSource(
   source: ImageSourcePropType | number,
-): ResolvedAssetSource | null {
+): MarkerImage | null {
   return Image.resolveAssetSource(source);
 }
