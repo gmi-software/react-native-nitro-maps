@@ -62,4 +62,4 @@ jobs:
         run: bun run build
 
       - name: Test
-        run: bun run --filter react-native-nitro-maps test
+        run: bun run --filter react-native-better-maps test

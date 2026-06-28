@@ -1,4 +1,4 @@
-# react-native-nitro-maps
+# react-native-better-maps
 
 High-performance maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
@@ -15,7 +15,7 @@ High-performance maps for React Native, built on [Nitro Modules](https://nitro.m
 ## Installation
 
 ```bash
-bun add react-native-nitro-maps react-native-nitro-modules
+bun add react-native-better-maps react-native-nitro-modules
 ```
 
 > Requires React Native 0.78+ with the New Architecture enabled.
@@ -29,7 +29,7 @@ export default {
   expo: {
     plugins: [
       [
-        'react-native-nitro-maps',
+        'react-native-better-maps',
         {
           googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
           locationPermission:
@@ -60,7 +60,7 @@ See [docs/expo-setup.md](docs/expo-setup.md) for a full Expo SDK 56 setup walkth
 ## Usage
 
 ```tsx
-import { MapView, Marker, Polyline } from 'react-native-nitro-maps';
+import { MapView, Marker, Polyline } from 'react-native-better-maps';
 
 function MyMap() {
   return (
@@ -90,7 +90,7 @@ function MyMap() {
 
 ```tsx
 import { useRef } from 'react';
-import { MapView, type MapViewRef } from 'react-native-nitro-maps';
+import { MapView, type MapViewRef } from 'react-native-better-maps';
 
 function ControlledMap() {
   const mapRef = useRef<MapViewRef>(null);
@@ -112,7 +112,7 @@ function ControlledMap() {
 
 ```tsx
 import { Platform } from 'react-native';
-import { MapView, type MapProvider } from 'react-native-nitro-maps';
+import { MapView, type MapProvider } from 'react-native-better-maps';
 
 const provider: MapProvider = Platform.OS === 'android' ? 'google' : 'apple';
 
@@ -152,7 +152,7 @@ Host apps must provide platform API keys for the Google Maps SDK:
   "expo": {
     "plugins": [
       [
-        "react-native-nitro-maps",
+        "react-native-better-maps",
         {
           "googleMapsApiKey": "YOUR_KEY_HERE"
         }

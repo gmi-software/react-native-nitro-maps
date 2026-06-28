@@ -15,7 +15,7 @@ export function getDefaultMapProvider(): MapProvider {
   }
 
   throw new Error(
-    `react-native-nitro-maps does not support platform "${Platform.OS}".`,
+    `react-native-better-maps does not support platform "${Platform.OS}".`,
   );
 }
 

@@ -28,7 +28,7 @@ enum MapProviderConfigurationError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .missingGoogleMapsIosApiKey:
-      return "react-native-nitro-maps: provider=\"google\" on iOS requires GoogleMapsIosApiKey in the host app Info.plist."
+      return "react-native-better-maps: provider=\"google\" on iOS requires GoogleMapsIosApiKey in the host app Info.plist."
     case let .unsupportedIOSProvider(provider):
       return "Map provider \"\(provider)\" is not supported on iOS."
     }

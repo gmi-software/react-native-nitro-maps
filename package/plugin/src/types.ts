@@ -1,4 +1,4 @@
-export type NitroMapsPluginOptions = {
+export type BetterMapsPluginOptions = {
   /**
    * Shared Google Maps API key for both platforms when platform-specific keys are omitted.
    */
@@ -26,31 +26,31 @@ export type NitroMapsPluginOptions = {
 };
 
 export function wantsWhenInUseLocation(
-  options: NitroMapsPluginOptions,
-): options is NitroMapsPluginOptions & { locationPermission: string } {
+  options: BetterMapsPluginOptions,
+): options is BetterMapsPluginOptions & { locationPermission: string } {
   return typeof options.locationPermission === 'string';
 }
 
 export function wantsAlwaysLocation(
-  options: NitroMapsPluginOptions,
-): options is NitroMapsPluginOptions & { locationAlwaysPermission: string } {
+  options: BetterMapsPluginOptions,
+): options is BetterMapsPluginOptions & { locationAlwaysPermission: string } {
   return typeof options.locationAlwaysPermission === 'string';
 }
 
 export function requiresForegroundLocation(
-  options: NitroMapsPluginOptions,
+  options: BetterMapsPluginOptions,
 ): boolean {
   return wantsWhenInUseLocation(options) || wantsAlwaysLocation(options);
 }
 
 export function resolveIosGoogleMapsApiKey(
-  options: NitroMapsPluginOptions,
+  options: BetterMapsPluginOptions,
 ): string | undefined {
   return options.iosGoogleMapsApiKey ?? options.googleMapsApiKey;
 }
 
 export function resolveAndroidGoogleMapsApiKey(
-  options: NitroMapsPluginOptions,
+  options: BetterMapsPluginOptions,
 ): string | undefined {
   return options.androidGoogleMapsApiKey ?? options.googleMapsApiKey;
 }

@@ -1,7 +1,7 @@
 import { ConfigPlugin, IOSConfig, withInfoPlist } from '@expo/config-plugins';
 
 import {
-  type NitroMapsPluginOptions,
+  type BetterMapsPluginOptions,
   requiresForegroundLocation,
   resolveIosGoogleMapsApiKey,
   wantsAlwaysLocation,
@@ -28,7 +28,7 @@ export function applyGoogleMapsIosApiKey(
 
 export function applyLocationPermissionsToInfoPlist(
   infoPlist: InfoPlist,
-  options: NitroMapsPluginOptions,
+  options: BetterMapsPluginOptions,
 ): InfoPlist {
   if (requiresForegroundLocation(options)) {
     infoPlist.NSLocationWhenInUseUsageDescription = wantsWhenInUseLocation(
@@ -45,7 +45,7 @@ export function applyLocationPermissionsToInfoPlist(
   return infoPlist;
 }
 
-export const withNitroMapsIos: ConfigPlugin<NitroMapsPluginOptions> = (
+export const withBetterMapsIos: ConfigPlugin<BetterMapsPluginOptions> = (
   config,
   options = {},
 ) => {

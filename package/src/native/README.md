@@ -1,6 +1,6 @@
 # Native layer architecture
 
-This directory contains the Nitro Module specifications and will host the JS ↔ native communication layer for `react-native-nitro-maps`.
+This directory contains the Nitro Module specifications and will host the JS ↔ native communication layer for `react-native-better-maps`.
 
 ## Directory structure
 

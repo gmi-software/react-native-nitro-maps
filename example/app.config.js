@@ -18,7 +18,7 @@ module.exports = {
     plugins: [
       ...(appJson.expo.plugins ?? []),
       [
-        'react-native-nitro-maps',
+        'react-native-better-maps',
         {
           iosGoogleMapsApiKey,
           androidGoogleMapsApiKey,

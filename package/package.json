@@ -1,5 +1,5 @@
 {
-  "name": "react-native-nitro-maps",
+  "name": "react-native-better-maps",
   "version": "0.0.1",
   "description": "High-performance maps for React Native built on Nitro Modules and the New Architecture",
   "main": "./lib/module/index.js",
@@ -24,7 +24,7 @@
     "android",
     "cpp",
     "nitro.json",
-    "react-native-nitro-maps.podspec",
+    "react-native-better-maps.podspec",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__"
@@ -54,12 +54,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB/react-native-nitro-maps.git"
+    "url": "https://github.com/YOUR_GITHUB/react-native-better-maps.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_GITHUB/react-native-nitro-maps/issues"
+    "url": "https://github.com/YOUR_GITHUB/react-native-better-maps/issues"
   },
-  "homepage": "https://github.com/YOUR_GITHUB/react-native-nitro-maps#readme",
+  "homepage": "https://github.com/YOUR_GITHUB/react-native-better-maps#readme",
   "author": "YOUR_NAME",
   "license": "MIT",
   "publishConfig": {

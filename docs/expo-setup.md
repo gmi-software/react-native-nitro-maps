@@ -1,17 +1,17 @@
 # Expo setup (SDK 56+)
 
-This guide covers configuring `react-native-nitro-maps` in an Expo app with the New Architecture enabled.
+This guide covers configuring `react-native-better-maps` in an Expo app with the New Architecture enabled.
 
 ## Prerequisites
 
 - Expo SDK 56+
 - React Native 0.78+ with New Architecture enabled (`newArchEnabled: true` in `app.json`)
-- `react-native-nitro-modules` installed alongside `react-native-nitro-maps`
+- `react-native-nitro-modules` installed alongside `react-native-better-maps`
 
 ## Install
 
 ```bash
-bun add react-native-nitro-maps react-native-nitro-modules
+bun add react-native-better-maps react-native-nitro-modules
 ```
 
 ## Config plugin
@@ -25,7 +25,7 @@ module.exports = {
     // ...your existing config
     plugins: [
       [
-        'react-native-nitro-maps',
+        'react-native-better-maps',
         {
           googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
           locationPermission:
@@ -41,7 +41,7 @@ module.exports = {
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `googleMapsApiKey` | `string` | — | Android: injects `com.google.android.geo.API_KEY` meta-data. iOS: no-op (MapKit needs no key; reserved for future Google Maps iOS support in [#2](https://github.com/gmi-software/react-native-nitro-maps/issues/2)). |
+| `googleMapsApiKey` | `string` | — | Android: injects `com.google.android.geo.API_KEY` meta-data. iOS: no-op (MapKit needs no key; reserved for future Google Maps iOS support in [#2](https://github.com/gmi-software/react-native-better-maps/issues/2)). |
 | `locationPermission` | `string \| false` | — | When set to a string: iOS `NSLocationWhenInUseUsageDescription` + Android `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`. |
 | `locationAlwaysPermission` | `string \| false` | — | When set to a string: iOS `NSLocationAlwaysAndWhenInUseUsageDescription` + Android `ACCESS_BACKGROUND_LOCATION`. |
 
@@ -110,5 +110,5 @@ The example's `prebuild` script builds the plugin (`build:plugin`) before runnin
 | --- | --- |
 | Blank map on Android | Ensure `googleMapsApiKey` is set and `expo prebuild` was run after adding the plugin. |
 | Location dot not showing | Set `locationPermission` in the plugin options and re-run prebuild. |
-| Plugin not found | Confirm `react-native-nitro-maps` is installed and listed in `plugins`. |
+| Plugin not found | Confirm `react-native-better-maps` is installed and listed in `plugins`. |
 | `Cannot find module './plugin/build/index'` | Run `bun run build:plugin` in the package (or `bun run build` from the repo root) before prebuild when using a workspace link. |

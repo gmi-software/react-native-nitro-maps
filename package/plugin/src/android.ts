@@ -5,7 +5,7 @@ import {
 } from '@expo/config-plugins';
 
 import {
-  type NitroMapsPluginOptions,
+  type BetterMapsPluginOptions,
   requiresForegroundLocation,
   resolveAndroidGoogleMapsApiKey,
   wantsAlwaysLocation,
@@ -34,7 +34,7 @@ export function applyGoogleMapsApiKey(
 }
 
 export function getLocationPermissions(
-  options: NitroMapsPluginOptions,
+  options: BetterMapsPluginOptions,
 ): string[] {
   const permissions: string[] = [];
 
@@ -52,7 +52,7 @@ export function getLocationPermissions(
   return permissions;
 }
 
-const withGoogleMapsApiKey: ConfigPlugin<NitroMapsPluginOptions> = (
+const withGoogleMapsApiKey: ConfigPlugin<BetterMapsPluginOptions> = (
   config,
   options = {},
 ) => {
@@ -67,7 +67,7 @@ const withGoogleMapsApiKey: ConfigPlugin<NitroMapsPluginOptions> = (
   });
 };
 
-const withLocationPermissions: ConfigPlugin<NitroMapsPluginOptions> = (
+const withLocationPermissions: ConfigPlugin<BetterMapsPluginOptions> = (
   config,
   options = {},
 ) => {
@@ -79,7 +79,7 @@ const withLocationPermissions: ConfigPlugin<NitroMapsPluginOptions> = (
   return AndroidConfig.Permissions.withPermissions(config, permissions);
 };
 
-export const withNitroMapsAndroid: ConfigPlugin<NitroMapsPluginOptions> = (
+export const withBetterMapsAndroid: ConfigPlugin<BetterMapsPluginOptions> = (
   config,
   options = {},
 ) => {
