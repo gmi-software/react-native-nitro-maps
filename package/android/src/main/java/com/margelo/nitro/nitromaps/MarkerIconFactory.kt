@@ -10,7 +10,13 @@ import android.util.LruCache
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.Marker
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.net.URI
+import java.net.URISyntaxException
 import java.net.URL
+import java.net.UnknownHostException
+import java.util.Locale
 import java.util.WeakHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -92,7 +98,7 @@ internal class MarkerIconFactory(
       }
     }
 
-    icon(image)?.let { cached ->
+    cache.get(iconKey)?.let { cached ->
       marker.setIcon(cached)
       setApplied(marker, iconKey)
       onIconApplied()
@@ -132,10 +138,7 @@ internal class MarkerIconFactory(
       return size
     }
 
-    val bitmap = loadLocalBitmap(image) ?: return null
-    val size = bitmap.width.toFloat() to bitmap.height.toFloat()
-    sizeCache.put(key, size)
-    return size
+    return null
   }
 
   private fun defaultMarkerDisplaySizePx(): Pair<Float, Float> =
@@ -145,10 +148,7 @@ internal class MarkerIconFactory(
     return "${image.uri}|${image.width ?: ""}|${image.height ?: ""}|${image.scale ?: ""}"
   }
 
-  private fun icon(image: MarkerImage): BitmapDescriptor? {
-    val key = cacheKey(image)
-    cache.get(key)?.let { return it }
-
+  private fun loadLocalIcon(image: MarkerImage, key: String): BitmapDescriptor? {
     val bitmap = loadLocalBitmap(image) ?: return null
     return cacheBitmap(key, bitmap)
   }
@@ -163,15 +163,22 @@ internal class MarkerIconFactory(
       return
     }
 
-    if (image.uri.startsWith("http://") || image.uri.startsWith("https://")) {
-      loadExecutor.execute {
-        val descriptor = loadRemoteIcon(image, key)
-        deliverOnMainThread { onLoaded(descriptor) }
+    if (isRemoteMarkerUri(image.uri)) {
+      remoteMarkerUriRejectReason(image.uri, resolveHostAddress = false)?.let { reason ->
+        logRejectedRemoteMarkerUri(image.uri, reason)
+        deliverOnMainThread { onLoaded(null) }
+        return
       }
-      return
     }
 
-    deliverOnMainThread { onLoaded(icon(image)) }
+    loadExecutor.execute {
+      val descriptor = if (isRemoteMarkerUri(image.uri)) {
+        loadRemoteIcon(image, key)
+      } else {
+        loadLocalIcon(image, key)
+      }
+      deliverOnMainThread { onLoaded(descriptor) }
+    }
   }
 
   private fun isIconApplied(marker: Marker, key: String): Boolean =
@@ -207,6 +214,11 @@ internal class MarkerIconFactory(
   }
 
   private fun loadRemoteIcon(image: MarkerImage, key: String): BitmapDescriptor? {
+    remoteMarkerUriRejectReason(image.uri, resolveHostAddress = true)?.let { reason ->
+      logRejectedRemoteMarkerUri(image.uri, reason)
+      return null
+    }
+
     return try {
       val connection = URL(image.uri).openConnection()
       connection.connectTimeout = 10_000
@@ -233,7 +245,7 @@ internal class MarkerIconFactory(
       return decodeFile(uri, image)
     }
 
-    if (uri.startsWith("http://") || uri.startsWith("https://")) {
+    if (isRemoteMarkerUri(uri)) {
       return null
     }
 
@@ -345,6 +357,97 @@ internal class MarkerIconFactory(
     return descriptor
   }
 
+  private fun isRemoteMarkerUri(uriString: String): Boolean {
+    val scheme = parseRemoteMarkerUri(uriString)?.scheme?.lowercase(Locale.US) ?: return false
+    return scheme == "http" || scheme == "https"
+  }
+
+  private fun parseRemoteMarkerUri(uriString: String): URI? =
+    try {
+      URI(uriString)
+    } catch (_: URISyntaxException) {
+      null
+    }
+
+  private fun remoteMarkerUriRejectReason(uriString: String, resolveHostAddress: Boolean): String? {
+    val uri = parseRemoteMarkerUri(uriString) ?: return "invalid URI"
+
+    when (uri.scheme?.lowercase(Locale.US)) {
+      "http", "https" -> Unit
+      null -> return "missing scheme"
+      else -> return "unsupported scheme"
+    }
+
+    if (uri.userInfo != null) {
+      return "user info not allowed"
+    }
+
+    val host = uri.host?.lowercase(Locale.US)?.takeIf { it.isNotEmpty() } ?: return "missing host"
+    if (!isAllowlistedRemoteHost(host, resolveHostAddress)) {
+      return "host not allowlisted"
+    }
+
+    return null
+  }
+
+  private fun isAllowlistedRemoteHost(host: String, resolveHostAddress: Boolean): Boolean {
+    if (host == "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) {
+      return false
+    }
+    if (host in BLOCKED_REMOTE_HOSTS) {
+      return false
+    }
+
+    if (!resolveHostAddress && !isNumericHostLiteral(host)) {
+      return true
+    }
+
+    val address = try {
+      InetAddress.getByName(host)
+    } catch (_: UnknownHostException) {
+      return !resolveHostAddress
+    }
+
+    return isAllowlistedRemoteAddress(address)
+  }
+
+  private fun isNumericHostLiteral(host: String): Boolean {
+    if (host.startsWith("[") && host.endsWith("]")) {
+      return true
+    }
+
+    val parts = host.split('.')
+    return parts.size == 4 && parts.all { part ->
+      val value = part.toIntOrNull() ?: return@all false
+      value in 0..255
+    }
+  }
+
+  private fun isAllowlistedRemoteAddress(address: InetAddress): Boolean {
+    if (
+      address.isLoopbackAddress ||
+      address.isAnyLocalAddress ||
+      address.isLinkLocalAddress ||
+      address.isSiteLocalAddress ||
+      address.isMulticastAddress
+    ) {
+      return false
+    }
+
+    if (address is Inet6Address) {
+      val firstOctet = address.address[0].toInt() and 0xff
+      if ((firstOctet and 0xfe) == 0xfc) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private fun logRejectedRemoteMarkerUri(uri: String, reason: String) {
+    Log.w(TAG, "Rejected remote marker image URI ($reason): $uri")
+  }
+
   private fun resizeBitmap(source: Bitmap, image: MarkerImage): Bitmap {
     val width = image.width ?: return source
     val height = image.height ?: return source
@@ -367,5 +470,10 @@ internal class MarkerIconFactory(
     private const val MAX_DECODE_PIXELS = 2048L * 2048L
 
     private val loadExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    private val BLOCKED_REMOTE_HOSTS = setOf(
+      "metadata.google.internal",
+      "metadata.goog",
+    )
   }
 }
