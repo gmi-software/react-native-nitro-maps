@@ -1,7 +1,7 @@
 import MapKit
 import UIKit
 
-/// Native MapKit marker pin — drop animation, selection bounce, and system styling.
+/// Native MapKit marker view with system insertion animation, selection bounce, and styling.
 final class NitroPinAnnotationView: MKMarkerAnnotationView {
   static let reuseIdentifier = "NitroPin"
 
@@ -19,7 +19,11 @@ final class NitroPinAnnotationView: MKMarkerAnnotationView {
   }
 
   func configure(for marker: MapMarkerAnnotation) {
+    layer.removeAllAnimations()
+    alpha = 1
+    transform = .identity
     annotation = marker
+    animatesWhenAdded = marker.enteringAnimation.kind == .system
     isDraggable = marker.draggable
     canShowCallout = marker.title != nil || marker.subtitle != nil
     displayPriority = .required

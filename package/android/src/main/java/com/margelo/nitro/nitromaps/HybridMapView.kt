@@ -32,6 +32,8 @@ class HybridMapView(private val context: ThemedReactContext) :
   private var _googleMapId: String? = null
   private var _clusteringEnabled: Boolean? = null
   private var _mapPadding: EdgePadding? = null
+  private var _markerEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
+  private var _clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
 
   override val view: FrameLayout = FrameLayout(context)
 
@@ -155,6 +157,20 @@ class HybridMapView(private val context: ThemedReactContext) :
     set(value) {
       _mapPadding = value
       adapter?.mapPadding = value
+    }
+
+  override var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+    get() = _markerEnteringAnimation
+    set(value) {
+      _markerEnteringAnimation = value
+      adapter?.markerEnteringAnimation = value
+    }
+
+  override var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
+    get() = _clusterEnteringAnimation
+    set(value) {
+      _clusterEnteringAnimation = value
+      adapter?.clusterEnteringAnimation = value
     }
 
   override var onRegionChange: ((region: Region) -> Unit)? = null
@@ -287,6 +303,8 @@ class HybridMapView(private val context: ThemedReactContext) :
     _googleMapId = null
     _clusteringEnabled = null
     _mapPadding = null
+    _markerEnteringAnimation = null
+    _clusterEnteringAnimation = null
     onRegionChange = null
     onRegionChangeComplete = null
     onMapReady = null
@@ -357,6 +375,8 @@ class HybridMapView(private val context: ThemedReactContext) :
     adapter.customMapStyle = _customMapStyle
     adapter.googleMapId = _googleMapId
     adapter.clusteringEnabled = _clusteringEnabled
+    adapter.markerEnteringAnimation = _markerEnteringAnimation
+    adapter.clusterEnteringAnimation = _clusterEnteringAnimation
     adapter.onRegionChange = onRegionChange
     adapter.onRegionChangeComplete = onRegionChangeComplete
     adapter.onMapReady = onMapReady

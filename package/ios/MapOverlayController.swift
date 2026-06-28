@@ -26,6 +26,9 @@ final class MapOverlayController {
   private var shapeOverlays: [String: MKOverlay] = [:]
   private var overlayStyles: [ObjectIdentifier: OverlayStyle] = [:]
 
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
+
   init(mapView: MKMapView) {
     self.mapView = mapView
   }
@@ -126,7 +129,10 @@ final class MapOverlayController {
       var annotations: [MKAnnotation] = []
       annotations.reserveCapacity(diff.added.count)
       for entry in diff.added {
-        let annotation = entry.element.makeAnnotation()
+        let annotation = entry.element.makeAnnotation(
+          markerEnteringAnimation: markerEnteringAnimation,
+          clusterEnteringAnimation: clusterEnteringAnimation
+        )
         displayedAnnotations[entry.key] = annotation
         displayedAnnotationVersions[entry.key] = entry.version
         annotations.append(annotation)

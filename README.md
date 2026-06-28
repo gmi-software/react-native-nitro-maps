@@ -140,24 +140,50 @@ The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling
 
 `googleMapId` is creation-time configuration for native SDK views. Changing it remounts the native map view, matching provider changes.
 
+### Marker entering animations
+
+`MapView` can configure native entering animations for markers and marker clusters:
+
+```tsx
+<MapView
+  style={{ flex: 1 }}
+  clusteringEnabled
+  markerEnteringAnimation={{ preset: 'fade-scale', duration: 180 }}
+  clusterEnteringAnimation={{ preset: 'fade' }}
+>
+  <Marker
+    coordinate={{ latitude: 52.2297, longitude: 21.0122 }}
+    enteringAnimation={false}
+  />
+</MapView>
+```
+
+`markerEnteringAnimation` is the map-level default for all markers, including bulk `markers` descriptors. `Marker.enteringAnimation` and bulk marker `enteringAnimation` override that default for one marker; `false` is an explicit opt-out. `clusterEnteringAnimation` applies to marker clusters when clustering is enabled.
+
+When no animation prop is set, the default is `system`: each provider keeps its native entering behavior. Explicit presets (`fade`, `fade-scale`) are the cross-provider contract. `fade-scale` may gracefully fall back to `fade` on SDK marker surfaces that do not support efficient scaling.
+
+Explicit configs use milliseconds. `duration` defaults to `180`, `delay` defaults to `0`, and both values are clamped to `0..3000` before they reach the native provider. `reduceMotion` defaults to `system`, which disables explicit animations when the platform Reduced Motion setting asks for it; use `never` only when the app intentionally ignores that setting for this overlay.
+
 ### Capability matrix
 
-| Capability           | `apple` iOS                                                 | `google` iOS                               | `google` Android                           | Future providers     |
-| -------------------- | ----------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ | -------------------- |
-| Region / camera      | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Camera animation     | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Visible region       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Fit to coordinates   | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Map types            | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Standard, satellite, hybrid, terrain       | Planned              |
-| Gestures             | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| User location        | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Supported; host app owns permission prompt | Planned              |
-| Compass              | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Scale control        | Supported                                                   | Unsupported                                | Unsupported                                | Planned per provider |
-| Markers / overlays   | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Overlay press events | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Clustering           | Supported                                                   | Supported                                  | Supported                                  | Planned per provider |
-| Custom styles        | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Google Maps JSON styles                    | Planned per provider |
-| Google Map ID        | Unsupported                                                 | Supported                                  | Supported                                  | Planned per provider |
+| Capability                 | `apple` iOS                                                 | `google` iOS                               | `google` Android                           | Future providers     |
+| -------------------------- | ----------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ | -------------------- |
+| Region / camera            | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Camera animation           | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Visible region             | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Fit to coordinates         | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Map types                  | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Standard, satellite, hybrid, terrain       | Planned              |
+| Gestures                   | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| User location              | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Supported; host app owns permission prompt | Planned              |
+| Compass                    | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Scale control              | Supported                                                   | Unsupported                                | Unsupported                                | Planned per provider |
+| Markers / overlays         | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Overlay press events       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Marker entering animation  | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
+| Cluster entering animation | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
+| Clustering                 | Supported                                                   | Supported                                  | Supported                                  | Planned per provider |
+| Custom styles              | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Google Maps JSON styles                    | Planned per provider |
+| Google Map ID              | Unsupported                                                 | Supported                                  | Supported                                  | Planned per provider |
 
 ## Public API
 
@@ -183,7 +209,9 @@ The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling
 | `MapViewRef`              | Imperative handle for camera control                 |
 | `MapViewProps`            | Props for `MapView`                                  |
 | `MapViewPropsForProvider` | Provider-specific `MapView` props                    |
+| `MarkerDescriptor`        | Bulk marker descriptor                               |
 | `MarkerProps`             | Props for `Marker`                                   |
+| `OverlayEnteringAnimation` | Marker / marker-cluster entering animation config   |
 | `PolylineProps`           | Props for `Polyline`                                 |
 | `PolygonProps`            | Props for `Polygon`                                  |
 | `CircleProps`             | Props for `Circle`                                   |

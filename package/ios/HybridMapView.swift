@@ -21,6 +21,8 @@ final class HybridMapView: HybridMapViewSpec {
   private var _googleMapId: String?
   private var _clusteringEnabled: Bool?
   private var _mapPadding: EdgePadding?
+  private var _markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  private var _clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
 
   lazy var view: UIView = {
     containerView
@@ -165,6 +167,22 @@ final class HybridMapView: HybridMapViewSpec {
     }
   }
 
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    get { _markerEnteringAnimation }
+    set {
+      _markerEnteringAnimation = newValue
+      adapter?.markerEnteringAnimation = newValue
+    }
+  }
+
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? {
+    get { _clusterEnteringAnimation }
+    set {
+      _clusterEnteringAnimation = newValue
+      adapter?.clusterEnteringAnimation = newValue
+    }
+  }
+
   var onRegionChange: ((Region) -> Void)? {
     didSet { adapter?.onRegionChange = onRegionChange }
   }
@@ -273,6 +291,8 @@ final class HybridMapView: HybridMapViewSpec {
     _googleMapId = nil
     _clusteringEnabled = nil
     _mapPadding = nil
+    _markerEnteringAnimation = nil
+    _clusterEnteringAnimation = nil
     markers = nil
     polylines = nil
     polygons = nil
@@ -347,6 +367,8 @@ final class HybridMapView: HybridMapViewSpec {
     adapter.googleMapId = _googleMapId
     adapter.clusteringEnabled = _clusteringEnabled
     adapter.mapPadding = _mapPadding
+    adapter.markerEnteringAnimation = _markerEnteringAnimation
+    adapter.clusterEnteringAnimation = _clusterEnteringAnimation
     adapter.onRegionChange = onRegionChange
     adapter.onRegionChangeComplete = onRegionChangeComplete
     adapter.onMapReady = onMapReady

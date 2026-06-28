@@ -205,18 +205,26 @@ const ScenarioChip = memo(function ScenarioChip({
   onPress,
 }: ScenarioChipProps) {
   return (
-    <Animated.View layout={LinearTransition.springify().damping(20).stiffness(260)}>
+    <Animated.View
+      layout={LinearTransition.springify().damping(20).stiffness(260)}
+    >
       <ScalePressable
         onPress={onPress}
         style={[styles.scenarioChip, active && styles.scenarioChipActive]}
       >
         <Text
-          style={[styles.scenarioChipIndex, active && styles.scenarioChipIndexActive]}
+          style={[
+            styles.scenarioChipIndex,
+            active && styles.scenarioChipIndexActive,
+          ]}
         >
           {index + 1}
         </Text>
         <Text
-          style={[styles.scenarioChipText, active && styles.scenarioChipTextActive]}
+          style={[
+            styles.scenarioChipText,
+            active && styles.scenarioChipTextActive,
+          ]}
         >
           {label}
         </Text>
@@ -269,14 +277,14 @@ const ScenarioDock = memo(function ScenarioDock({
 
   return (
     <Animated.View
-      entering={FadeInUp.duration(420).delay(120).springify().damping(20).stiffness(220)}
-      layout={LinearTransition.springify().damping(20).stiffness(240)}
+      entering={FadeInUp.delay(120)}
+      layout={LinearTransition.springify()}
       style={[styles.dock, expanded && styles.dockExpandedContainer]}
     >
       {expanded ? (
         <Animated.View
-          entering={FadeInDown.duration(260).springify().damping(20).stiffness(260)}
-          exiting={FadeOut.duration(160)}
+          entering={FadeInDown.springify()}
+          exiting={FadeOut.springify()}
           style={styles.dockExpanded}
         >
           <View style={styles.dockHeader}>
@@ -288,8 +296,14 @@ const ScenarioDock = memo(function ScenarioDock({
                 {scenario.name}
               </Text>
             </View>
-            <ScalePressable onPress={onToggleExpanded} hitSlop={8} style={styles.iconButton}>
-              <Animated.Text style={[styles.iconButtonText, chevronStyle]}>▴</Animated.Text>
+            <ScalePressable
+              onPress={onToggleExpanded}
+              hitSlop={8}
+              style={styles.iconButton}
+            >
+              <Animated.Text style={[styles.iconButtonText, chevronStyle]}>
+                ▴
+              </Animated.Text>
             </ScalePressable>
           </View>
 
@@ -298,7 +312,10 @@ const ScenarioDock = memo(function ScenarioDock({
           <View style={styles.divider} />
 
           <View style={styles.actionRow}>
-            <ScalePressable onPress={onAnimateCamera} style={styles.actionButton}>
+            <ScalePressable
+              onPress={onAnimateCamera}
+              style={styles.actionButton}
+            >
               <Text style={styles.actionButtonIcon}>↻</Text>
               <Text style={styles.actionButtonText}>Animate</Text>
             </ScalePressable>
@@ -316,7 +333,10 @@ const ScenarioDock = memo(function ScenarioDock({
               </Text>
             </ScalePressable>
             {canCycleProvider ? (
-              <ScalePressable onPress={onCycleProvider} style={styles.actionButton}>
+              <ScalePressable
+                onPress={onCycleProvider}
+                style={styles.actionButton}
+              >
                 <Text style={styles.actionButtonIcon}>⌁</Text>
                 <Text style={styles.actionButtonText}>{providerLabel}</Text>
               </ScalePressable>
@@ -343,8 +363,14 @@ const ScenarioDock = memo(function ScenarioDock({
           ))}
         </ScrollView>
         {!expanded ? (
-          <ScalePressable onPress={onToggleExpanded} hitSlop={8} style={styles.iconButton}>
-            <Animated.Text style={[styles.iconButtonText, chevronStyle]}>▴</Animated.Text>
+          <ScalePressable
+            onPress={onToggleExpanded}
+            hitSlop={8}
+            style={styles.iconButton}
+          >
+            <Animated.Text style={[styles.iconButtonText, chevronStyle]}>
+              ▴
+            </Animated.Text>
           </ScalePressable>
         ) : null}
       </View>
@@ -393,6 +419,10 @@ const MapScene = memo(
       showsCompass: scenario.advanced?.showsCompass,
       customMapStyle: scenario.advanced?.customMapStyle,
       mapPadding,
+      markerEnteringAnimation: { preset: 'fade-scale', duration: 180 } as const,
+      clusterEnteringAnimation: scenario.advanced?.clusteringEnabled
+        ? ({ preset: 'fade', duration: 160 } as const)
+        : undefined,
       markers: scenario.markers,
       polylines: scenario.polylines,
       polygons: scenario.polygons,
@@ -459,7 +489,7 @@ const StatusHeader = memo(function StatusHeader({
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(360).delay(60).springify().damping(20).stiffness(240)}
+      entering={FadeInDown.springify().delay(60)}
       style={[styles.header, showsScale && styles.headerWithScale]}
       pointerEvents="none"
     >
@@ -558,14 +588,17 @@ export default function App() {
     });
   }, [provider]);
 
-  const selectScenario = useCallback((index: number) => {
-    if (index === scenarioIndex) {
-      return;
-    }
-    setScenarioIndex(index);
-    setMapReady(false);
-    setStatus(MAP_SCENARIOS[index].name);
-  }, [scenarioIndex]);
+  const selectScenario = useCallback(
+    (index: number) => {
+      if (index === scenarioIndex) {
+        return;
+      }
+      setScenarioIndex(index);
+      setMapReady(false);
+      setStatus(MAP_SCENARIOS[index].name);
+    },
+    [scenarioIndex],
+  );
 
   const toggleDockExpanded = useCallback(() => {
     setDockExpanded((current) => !current);
@@ -601,7 +634,10 @@ export default function App() {
     setMapReady(true);
     setStatus(scenario.name);
 
-    if (scenario.advanced?.fitToCoordinatesOnReady && scenario.markers != null) {
+    if (
+      scenario.advanced?.fitToCoordinatesOnReady &&
+      scenario.markers != null
+    ) {
       mapRef.current?.fitToCoordinates(
         scenario.markers.map((marker) => marker.coordinate),
         mapPadding,

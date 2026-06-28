@@ -4,6 +4,8 @@ export const appleProps: MapViewPropsForProvider<'apple'> = {
   provider: 'apple',
   showsScale: true,
   clusteringEnabled: true,
+  markerEnteringAnimation: { preset: 'fade-scale', duration: 180 },
+  clusterEnteringAnimation: 'system',
 };
 
 export const googleProps: MapViewPropsForProvider<'google'> = {
@@ -11,11 +13,20 @@ export const googleProps: MapViewPropsForProvider<'google'> = {
   googleMapId: 'google-map-id',
   customMapStyle: '[]',
   clusteringEnabled: true,
+  clusterEnteringAnimation: false,
 };
 
 export const defaultProviderProps: MapViewProps = {
   showsScale: true,
   customMapStyle: '[]',
+  markerEnteringAnimation: false,
+  markers: [
+    {
+      id: 'marker-1',
+      coordinate: { latitude: 52.2297, longitude: 21.0122 },
+      enteringAnimation: { preset: 'fade', reduceMotion: 'system' },
+    },
+  ],
 };
 
 // @ts-expect-error Google Map IDs require the explicit Google provider.
@@ -45,3 +56,16 @@ export const openStreetMapClusteringProps: MapViewPropsForProvider<'openstreetma
     // @ts-expect-error Planned OpenStreetMap support has no clustering capability yet.
     clusteringEnabled: true,
   };
+
+export const openStreetMapClusterAnimationProps: MapViewPropsForProvider<'openstreetmap'> =
+  {
+    provider: 'openstreetmap',
+    // @ts-expect-error Planned OpenStreetMap support has no cluster animation capability yet.
+    clusterEnteringAnimation: { preset: 'fade' },
+  };
+
+export const mapboxClusterAnimationProps: MapViewPropsForProvider<'mapbox'> = {
+  provider: 'mapbox',
+  // @ts-expect-error Planned Mapbox support has no cluster animation capability yet.
+  clusterEnteringAnimation: { preset: 'fade' },
+};

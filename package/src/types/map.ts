@@ -4,10 +4,10 @@ import type { Camera } from './camera';
 import type { Coordinate } from './coordinate';
 import type {
   CircleDescriptor,
-  MarkerDescriptor,
   PolygonDescriptor,
   PolylineDescriptor,
 } from '../native/specs/overlays';
+import type { MarkerDescriptor, OverlayEnteringAnimation } from './overlays';
 import type { EdgePadding, Region } from './region';
 
 /**
@@ -101,6 +101,9 @@ interface BaseMapViewProps {
 
   /** Called when a marker cluster is pressed. */
   onClusterPress?: (markerIds: string[], coordinate: Coordinate) => void;
+
+  /** Default entering animation for marker overlays. */
+  markerEnteringAnimation?: OverlayEnteringAnimation;
 }
 
 interface ExistingDefaultProviderProps extends BaseMapViewProps {
@@ -121,6 +124,9 @@ interface ExistingDefaultProviderProps extends BaseMapViewProps {
 
   /** Whether to cluster nearby markers. */
   clusteringEnabled?: boolean;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimation;
 }
 
 interface AppleMapViewProps extends BaseMapViewProps {
@@ -137,6 +143,9 @@ interface AppleMapViewProps extends BaseMapViewProps {
 
   /** Whether to cluster nearby markers. */
   clusteringEnabled?: boolean;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimation;
 }
 
 interface GoogleMapViewProps extends BaseMapViewProps {
@@ -153,6 +162,9 @@ interface GoogleMapViewProps extends BaseMapViewProps {
 
   /** Whether to cluster nearby markers. */
   clusteringEnabled?: boolean;
+
+  /** Entering animation for marker clusters. */
+  clusterEnteringAnimation?: OverlayEnteringAnimation;
 }
 
 interface OpenStreetMapViewProps extends BaseMapViewProps {
@@ -161,6 +173,7 @@ interface OpenStreetMapViewProps extends BaseMapViewProps {
   showsScale?: never;
   customMapStyle?: never;
   clusteringEnabled?: never;
+  clusterEnteringAnimation?: never;
 }
 
 interface MapboxMapViewProps extends BaseMapViewProps {
@@ -169,6 +182,7 @@ interface MapboxMapViewProps extends BaseMapViewProps {
   showsScale?: never;
   customMapStyle?: never;
   clusteringEnabled?: never;
+  clusterEnteringAnimation?: never;
 }
 
 export type MapViewPropsForProvider<Provider extends MapProvider> =

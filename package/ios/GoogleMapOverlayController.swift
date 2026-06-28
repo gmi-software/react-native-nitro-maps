@@ -26,6 +26,8 @@ final class GoogleMapOverlayController {
   var onCirclePress: ((String) -> Void)?
   var onClusterPress: (([String], Coordinate) -> Void)?
   var animateToClusterRegion: ((MKCoordinateRegion) -> Void)?
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
 
   init(mapView: GMSMapView) {
     self.mapView = mapView
@@ -183,7 +185,10 @@ final class GoogleMapOverlayController {
 
     for entry in diff.added {
       let marker = makeMarker(for: entry.element)
+      let animation = enteringAnimation(for: entry.element)
+      OverlayEnteringAnimationResolver.prepareGoogleMarker(marker, animation: animation)
       marker.map = mapView
+      OverlayEnteringAnimationResolver.animateGoogleMarker(marker, animation: animation)
       markers[entry.key] = marker
       markerVersions[entry.key] = entry.version
     }
@@ -201,6 +206,20 @@ final class GoogleMapOverlayController {
     let marker = GMSMarker()
     updateMarker(marker, with: element)
     return marker
+  }
+
+  private func enteringAnimation(
+    for element: MarkerClusterEngine.Element
+  ) -> ResolvedOverlayEnteringAnimation {
+    switch element {
+    case let .single(descriptor):
+      return OverlayEnteringAnimationResolver.resolve(
+        descriptor.enteringAnimation,
+        fallback: markerEnteringAnimation
+      )
+    case .cluster:
+      return OverlayEnteringAnimationResolver.resolve(clusterEnteringAnimation)
+    }
   }
 
   private func updateMarker(_ marker: GMSMarker, with element: MarkerClusterEngine.Element) {

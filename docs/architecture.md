@@ -81,6 +81,8 @@ Map and overlay callbacks are wired through Nitro listeners on the HybridView. C
 | `googleMapId` | Google Cloud Map ID for the `google` provider. It is creation-time SDK configuration, so changing it remounts the native map view. |
 | `clusteringEnabled` | Custom grid-based clustering via `MarkerClusterEngine` on both platforms (viewport-aware, background compute). |
 | `Marker.clusterable` | Opt-out per marker (defaults to `true`). Non-clusterable markers always render individually. |
+| `markerEnteringAnimation` / `Marker.enteringAnimation` | Native entering animation for newly added marker render elements. Per-marker values override the map-level default; `false` is an explicit opt-out. |
+| `clusterEnteringAnimation` | Native entering animation for newly added marker-cluster render elements. Available only on providers with clustering support. |
 | `customMapStyle` | JSON string. The `google` provider uses Google Maps JSON styles on iOS and Android. The `apple` provider maps a curated subset to `MKMapConfiguration` on iOS 16+. |
 | `showsUserLocation` / `followsUserLocation` | Toggles the native user-location layer. Host app must request location permission (`NSLocationWhenInUseUsageDescription` on iOS; `ACCESS_FINE_LOCATION` on Android). |
 | `showsCompass` / `showsScale` | Compass on both platforms. Scale is iOS-only (`showsScale` is a no-op on Android). |
@@ -98,6 +100,8 @@ Map and overlay callbacks are wired through Nitro listeners on the HybridView. C
 ### Overlay components
 
 `Marker`, `Polyline`, `Polygon`, and `Circle` are overlay components that compose inside `MapView`. Overlay props are collected on the JS side and serialized into descriptor structs passed to the native `HybridMapView` (data-driven architecture).
+
+Marker and marker-cluster entering animations follow the same descriptor model. The public API accepts `false`, `system`, or a serializable preset config; the React wrapper normalizes that into native descriptors. Native provider adapters execute the animation when a marker render element appears in the render diff. Updating animation config for an already retained marker does not restart the animation; the new config is used the next time that marker is added again.
 
 ## Data flow (target state)
 

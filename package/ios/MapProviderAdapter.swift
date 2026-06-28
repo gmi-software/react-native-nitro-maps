@@ -19,6 +19,8 @@ protocol MapProviderAdapter: AnyObject {
   var googleMapId: String? { get set }
   var clusteringEnabled: Bool? { get set }
   var mapPadding: EdgePadding? { get set }
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? { get set }
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor? { get set }
 
   var onRegionChange: ((Region) -> Void)? { get set }
   var onRegionChangeComplete: ((Region) -> Void)? { get set }

@@ -21,6 +21,8 @@ interface MapProviderAdapter {
   var googleMapId: String?
   var clusteringEnabled: Boolean?
   var mapPadding: EdgePadding?
+  var markerEnteringAnimation: OverlayEnteringAnimationDescriptor?
+  var clusterEnteringAnimation: OverlayEnteringAnimationDescriptor?
 
   var onRegionChange: ((region: Region) -> Unit)?
   var onRegionChangeComplete: ((region: Region) -> Unit)?

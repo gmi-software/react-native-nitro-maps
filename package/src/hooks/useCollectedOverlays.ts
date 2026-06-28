@@ -18,6 +18,7 @@ import { Polygon } from '../components/Polygon';
 import { Polyline } from '../components/Polyline';
 import type { OverlayComponentType, OverlayTypeName } from '../overlays/overlayType';
 import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
+import { normalizeEnteringAnimation } from '../utils/enteringAnimation';
 
 interface OverlayCallbacks {
   onPress?: () => void;
@@ -110,6 +111,7 @@ const overlayCollectors: OverlayCollector[] = [
         subtitle: props.subtitle,
         draggable: props.draggable,
         clusterable: props.clusterable,
+        enteringAnimation: normalizeEnteringAnimation(props.enteringAnimation),
       });
       state.registry.set(overlayCallbackKey(OverlayType.Marker, id), {
         onPress: props.onPress,
