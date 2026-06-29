@@ -1,16 +1,78 @@
-# react-native-nitro-maps
+<img width="2172" height="724" alt="react-native-nitro-maps" src="./assets/react-native-nitro-maps.png" />
 
-High-performance maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
+<div align="center">
 
-> **Status: Work in Progress** — Native rendering exists for Apple MapKit on iOS and Google Maps SDK on iOS and Android. Additional providers are planned.
+Fast, typed maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
-## Goals
+![React Native](https://img.shields.io/badge/React%20Native-0.78%2B-61dafb)
+![Nitro Modules](https://img.shields.io/badge/Nitro%20Modules-0.35%2B-2563eb)
+![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20Android-111827)
+![License](https://img.shields.io/badge/license-MIT-16a34a)
 
-- **Performance first** — Leverage Nitro Modules and JSI for zero-bridge map interactions.
-- **New Architecture native** — Built exclusively for React Native's New Architecture (Fabric + TurboModules).
-- **Cross-platform** — Apple MapKit on iOS and Google Maps SDK on Android by default, with a unified TypeScript API.
-- **Developer experience** — Familiar component API inspired by `react-native-maps`, with full TypeScript support.
-- **Tree-shakeable** — ESM-only build with proper `exports` map for optimal bundle size.
+Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance native map rendering.
+
+[Features](#features) • [Installation](#installation) • [Quick start](#quick-start) • [Map providers](#map-providers) • [Documentation](#documentation) • [Public API](#public-api)
+
+**Full documentation** lives in [`docs/`](docs). Start with [Expo setup](docs/expo-setup.md), [Architecture](docs/architecture.md), and [Roadmap](docs/roadmap.md).
+
+> **Status: Work in Progress**
+>
+> Native rendering exists for Apple MapKit on iOS and Google Maps SDK on iOS and Android. Additional providers are planned.
+
+</div>
+
+---
+
+## Table of contents
+
+- [Features](#features)
+- [Supported platforms](#supported-platforms)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Map providers](#map-providers)
+- [Custom marker images](#custom-marker-images)
+- [Google Maps setup](#google-maps-setup)
+- [Marker entering animations](#marker-entering-animations)
+- [Capability matrix](#capability-matrix)
+- [Public API](#public-api)
+- [Example app](#example-app)
+- [Documentation](#documentation)
+- [Common problems](#common-problems)
+- [Development](#development)
+- [Roadmap](#roadmap)
+
+## Features
+
+- **Performance first** - Nitro Modules and JSI power zero-bridge map interactions.
+- **New Architecture native** - Built exclusively for React Native's New Architecture: Fabric + TurboModules.
+- **Unified map API** - One typed React API for Apple MapKit and Google Maps SDK.
+- **Provider-aware props** - TypeScript narrows provider-specific props with `MapViewPropsForProvider<P>`.
+- **Markers and overlays** - Markers with title/subtitle callouts and drag support, plus polylines, polygons, and circles.
+- **Camera control** - Declarative region/camera props plus imperative camera helpers.
+- **Marker clustering** - Native marker clustering for large point sets.
+- **Native entering animations** - Configurable marker and cluster entrance animations.
+- **Expo friendly** - Config plugin for Google Maps API keys and location permissions.
+- **Tree-shakeable package** - ESM-only build with an explicit `exports` map.
+
+## Supported platforms
+
+React Native Nitro Maps requires React Native `0.78+` with the New Architecture enabled.
+
+| Platform | Default provider | Available providers |
+| -------- | ---------------- | ------------------- |
+| iOS      | `apple`          | `apple`, `google`   |
+| Android  | `google`         | `google`            |
+
+Planned providers are part of the public `MapProvider` type but do not render native maps yet:
+
+| Provider        | iOS       | Android     | Notes                           |
+| --------------- | --------- | ----------- | ------------------------------- |
+| `apple`         | Supported | Unsupported | Apple MapKit                    |
+| `google`        | Supported | Supported   | Google Maps SDK                 |
+| `openstreetmap` | Planned   | Planned     | No rendering implementation yet |
+| `mapbox`        | Planned   | Planned     | No rendering implementation yet |
+
+Unsupported explicit providers throw before a native map view is created.
 
 ## Installation
 
@@ -18,11 +80,21 @@ High-performance maps for React Native, built on [Nitro Modules](https://nitro.m
 bun add react-native-nitro-maps react-native-nitro-modules
 ```
 
-> Requires React Native 0.78+ with the New Architecture enabled.
+```bash
+npm install react-native-nitro-maps react-native-nitro-modules
+```
+
+```bash
+yarn add react-native-nitro-maps react-native-nitro-modules
+```
+
+```bash
+pnpm add react-native-nitro-maps react-native-nitro-modules
+```
 
 ### Expo config plugin
 
-For Expo apps (SDK 56+), add the config plugin to `app.json` or `app.config.js`:
+For Expo apps using SDK `56+`, add the config plugin to `app.json` or `app.config.js`:
 
 ```js
 export default {
@@ -41,23 +113,23 @@ export default {
 };
 ```
 
-| Option | Platform | Description |
-| --- | --- | --- |
-| `googleMapsApiKey` | iOS + Android | Shared fallback when platform-specific keys are omitted. |
-| `iosGoogleMapsApiKey` | iOS | Injects `GoogleMapsIosApiKey` into Info.plist for `provider="google"`. |
-| `androidGoogleMapsApiKey` | Android | Injects `com.google.android.geo.API_KEY` meta-data. |
-| `locationPermission` | iOS + Android | String sets `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. Pass `false` or omit to skip. |
-| `locationAlwaysPermission` | iOS + Android | String sets `NSLocationAlwaysAndWhenInUseUsageDescription` and adds `ACCESS_BACKGROUND_LOCATION`. Pass `false` or omit to skip. |
+| Option                     | Platform      | Description                                                                                                                                 |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `googleMapsApiKey`         | iOS + Android | Shared fallback when platform-specific keys are omitted.                                                                                    |
+| `iosGoogleMapsApiKey`      | iOS           | Injects `GoogleMapsIosApiKey` into `Info.plist` for `provider="google"`.                                                                    |
+| `androidGoogleMapsApiKey`  | Android       | Injects `com.google.android.geo.API_KEY` metadata.                                                                                          |
+| `locationPermission`       | iOS + Android | String sets `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. Pass `false` or omit to skip. |
+| `locationAlwaysPermission` | iOS + Android | String sets `NSLocationAlwaysAndWhenInUseUsageDescription` and adds `ACCESS_BACKGROUND_LOCATION`. Pass `false` or omit to skip.             |
 
 After `expo prebuild`, native projects have the required keys and permissions without manual edits.
 
-> **Google Maps API key:** Use either this plugin's `googleMapsApiKey` option or Expo's built-in `android.config.googleMaps.apiKey` — pick one source, not both.
+> **Google Maps API key:** Use either this plugin's `googleMapsApiKey` option or Expo's built-in `android.config.googleMaps.apiKey`. Pick one source, not both.
 >
 > **EAS Secrets:** Store `GOOGLE_MAPS_API_KEY` as an EAS secret and reference it via `process.env.GOOGLE_MAPS_API_KEY` in `app.config.js`.
 
 See [docs/expo-setup.md](docs/expo-setup.md) for a full Expo SDK 56 setup walkthrough.
 
-## Usage
+## Quick start
 
 ```tsx
 import { MapView, Marker, Polyline } from 'react-native-nitro-maps';
@@ -91,7 +163,7 @@ function MyMap() {
 }
 ```
 
-### Imperative API
+### Imperative camera API
 
 ```tsx
 import { useRef } from 'react';
@@ -111,7 +183,7 @@ function ControlledMap() {
 }
 ```
 
-### Map providers
+## Map providers
 
 `MapView` accepts an optional `provider` prop:
 
@@ -133,20 +205,11 @@ When `provider` is omitted, defaults stay backward-compatible:
 | iOS      | `apple`          |
 | Android  | `google`         |
 
-Current provider availability:
-
-| Provider        | iOS       | Android     | Notes                           |
-| --------------- | --------- | ----------- | ------------------------------- |
-| `apple`         | Supported | Unsupported | Apple MapKit                    |
-| `google`        | Supported | Supported   | Google Maps SDK                 |
-| `openstreetmap` | Planned   | Planned     | No rendering implementation yet |
-| `mapbox`        | Planned   | Planned     | No rendering implementation yet |
-
-Unsupported explicit providers throw before a native map view is created. Changing `provider` remounts the native map view, so controlled props such as `region`, `camera`, overlays, and callbacks should be supplied again through React props.
+Changing `provider` remounts the native map view. Controlled props such as `region`, `camera`, overlays, and callbacks should therefore be supplied again through React props.
 
 Provider-specific TypeScript props are exposed through `MapViewPropsForProvider<P>`. For example, `showsScale` is accepted for `apple` but rejected for `google` because Google Maps SDK has no native scale control.
 
-### Custom marker images
+## Custom marker images
 
 Markers support custom bitmap icons with positioning and styling options:
 
@@ -174,21 +237,21 @@ Markers support custom bitmap icons with positioning and styling options:
 
 Supported image sources:
 
-| Source            | Example                         | Notes                                      |
-| ----------------- | ------------------------------- | ------------------------------------------ |
-| Bundled asset     | `require('./pin.png')`          | Resolved on JS side before crossing Nitro  |
-| Local URI         | `{ uri: 'file:///…' }`          | Platform file paths                        |
-| Remote URL        | `{ uri: 'https://…' }`          | Async fetch with in-memory cache           |
+| Source        | Example                | Notes                                     |
+| ------------- | ---------------------- | ----------------------------------------- |
+| Bundled asset | `require('./pin.png')` | Resolved on JS side before crossing Nitro |
+| Local URI     | `{ uri: 'file:///…' }` | Platform file paths                       |
+| Remote URL    | `{ uri: 'https://…' }` | Async fetch with in-memory cache          |
 
 Additional props:
 
-| Prop           | Default        | Description                                           |
-| -------------- | -------------- | ----------------------------------------------------- |
-| `anchor`       | `{ x: 0.5, y: 1 }` | Point on the image aligned to the coordinate    |
-| `centerOffset` | —              | Extra offset in dp (MapKit-style)                     |
-| `rotation`     | `0`            | Clockwise rotation in degrees                         |
-| `flat`         | `false`        | Rotate with map plane (Google Maps; limited on iOS)   |
-| `opacity`      | `1`            | Marker opacity from 0 to 1                            |
+| Prop           | Default            | Description                                         |
+| -------------- | ------------------ | --------------------------------------------------- |
+| `anchor`       | `{ x: 0.5, y: 1 }` | Point on the image aligned to the coordinate        |
+| `centerOffset` | —                  | Extra offset in dp (MapKit-style)                   |
+| `rotation`     | `0`                | Clockwise rotation in degrees                       |
+| `flat`         | `false`            | Rotate with map plane (Google Maps; limited on iOS) |
+| `opacity`      | `1`                | Marker opacity from 0 to 1                          |
 
 Platform notes:
 
@@ -199,21 +262,23 @@ Platform notes:
 
 ### react-native-maps migration (markers)
 
-| react-native-maps      | react-native-nitro-maps              |
-| ---------------------- | -------------------------------------- |
-| `image={require(...)}` | `image={require(...)}`                 |
-| `anchor={{ x, y }}`    | `anchor={{ x, y }}`                    |
-| `centerOffset`         | `centerOffset`                         |
-| `rotation`             | `rotation`                             |
-| `flat`                 | `flat`                                 |
-| `opacity`              | `opacity`                              |
-| Custom RN child views  | Not supported (use bitmap `image`)     |
+| react-native-maps      | react-native-nitro-maps            |
+| ---------------------- | ---------------------------------- |
+| `image={require(...)}` | `image={require(...)}`             |
+| `anchor={{ x, y }}`    | `anchor={{ x, y }}`                |
+| `centerOffset`         | `centerOffset`                     |
+| `rotation`             | `rotation`                         |
+| `flat`                 | `flat`                             |
+| `opacity`              | `opacity`                          |
+| Custom RN child views  | Not supported (use bitmap `image`) |
 
-#### Google Maps setup
+## Google Maps setup
 
-Host apps must provide platform API keys for the Google Maps SDK:
+Host apps must provide platform API keys for the Google Maps SDK.
 
-- Expo: add the config plugin to your app config:
+### Expo
+
+Add the config plugin to your app config:
 
 ```json
 {
@@ -230,14 +295,18 @@ Host apps must provide platform API keys for the Google Maps SDK:
 }
 ```
 
-Use `iosGoogleMapsApiKey` and `androidGoogleMapsApiKey` instead when each platform needs a different restricted key.
+Use `iosGoogleMapsApiKey` and `androidGoogleMapsApiKey` when each platform needs a different restricted key.
+
+The example app uses the config plugin. It reads `GOOGLE_MAPS_IOS_API_KEY` and `GOOGLE_MAPS_ANDROID_API_KEY` with `GOOGLE_MAPS_API_KEY` as a shared fallback.
+
+### Bare React Native
 
 - iOS: add a `GoogleMapsIosApiKey` string to `Info.plist`.
 - Android: add `com.google.android.geo.API_KEY` metadata to `AndroidManifest.xml`.
 
-The example app uses the config plugin. It reads `GOOGLE_MAPS_IOS_API_KEY` and `GOOGLE_MAPS_ANDROID_API_KEY` with `GOOGLE_MAPS_API_KEY` as a shared fallback.
+### Google Map ID
 
-The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling:
+The `google` provider accepts `googleMapId` for Google Cloud Map ID styling:
 
 ```tsx
 <MapView provider="google" googleMapId="YOUR_MAP_ID" style={{ flex: 1 }} />
@@ -245,7 +314,7 @@ The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling
 
 `googleMapId` is creation-time configuration for native SDK views. Changing it remounts the native map view, matching provider changes.
 
-### Marker entering animations
+## Marker entering animations
 
 `MapView` can configure native entering animations for markers and marker clusters:
 
@@ -267,11 +336,11 @@ The `google` provider also accepts `googleMapId` for Google Cloud Map ID styling
 
 When no animation prop is set, the default is `system`: each provider keeps its native entering behavior. Explicit presets (`fade`, `fade-scale`) are the cross-provider contract. `fade-scale` may gracefully fall back to `fade` on SDK marker surfaces that do not support efficient scaling.
 
-Explicit configs use milliseconds. `duration` defaults to `180`, `delay` defaults to `0`, and both values are clamped to `0..3000` before they reach the native provider. `reduceMotion` defaults to `system`, which disables explicit animations when the platform Reduced Motion setting asks for it; use `never` only when the app intentionally ignores that setting for this overlay.
+Explicit configs use milliseconds. `duration` defaults to `180`, `delay` defaults to `0`, and both values are clamped to `0..3000` before they reach the native provider. `reduceMotion` defaults to `system`, which disables explicit animations when the platform Reduced Motion setting asks for it. Use `never` only when the app intentionally ignores that setting for this overlay.
 
 On Google Maps providers, marker and cluster entering animations can reduce UI-thread frame rate when a large viewport refresh adds many markers at once. The provider caps animated markers per refresh and may show the remaining markers immediately to preserve map gesture performance. For very large marker sets, prefer clustering, shorter durations, or `markerEnteringAnimation={false}` / `clusterEnteringAnimation={false}` when smooth gestures are more important than entrance motion.
 
-### Capability matrix
+## Capability matrix
 
 | Capability                 | `apple` iOS                                                 | `google` iOS                               | `google` Android                           | Future providers     |
 | -------------------------- | ----------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ | -------------------- |
@@ -286,6 +355,7 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 | Scale control              | Supported                                                   | Unsupported                                | Unsupported                                | Planned per provider |
 | Markers / overlays         | Supported                                                   | Supported                                  | Supported                                  | Planned              |
 | Custom marker images       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Marker callouts / dragging | Supported                                                   | Supported                                  | Supported                                  | Planned per provider |
 | Overlay press events       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
 | Marker entering animation  | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
 | Cluster entering animation | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
@@ -307,25 +377,25 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 
 ### Types
 
-| Type                      | Description                                          |
-| ------------------------- | ---------------------------------------------------- |
-| `Coordinate`              | `{ latitude, longitude }`                            |
-| `Region`                  | Center + span                                        |
-| `Camera`                  | Position, zoom, heading, pitch                       |
-| `MapType`                 | `'standard' \| 'satellite' \| 'hybrid' \| 'terrain'` |
-| `MapProvider`             | `'apple' \| 'google' \| 'openstreetmap' \| 'mapbox'` |
-| `MapViewRef`              | Imperative handle for camera control                 |
-| `MapViewProps`            | Props for `MapView`                                  |
-| `MapViewPropsForProvider` | Provider-specific `MapView` props                    |
-| `MarkerDescriptor`        | Bulk marker descriptor                               |
-| `MarkerProps`             | Props for `Marker`                                   |
-| `MarkerImage`             | Resolved marker image descriptor                     |
-| `MarkerAnchor`            | Anchor point on marker image (0..1)                  |
-| `MarkerPoint`             | Point offset in dp                                   |
-| `OverlayEnteringAnimation` | Marker / marker-cluster entering animation config   |
-| `PolylineProps`           | Props for `Polyline`                                 |
-| `PolygonProps`            | Props for `Polygon`                                  |
-| `CircleProps`             | Props for `Circle`                                   |
+| Type                       | Description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `Coordinate`               | `{ latitude, longitude }`                            |
+| `Region`                   | Center + span                                        |
+| `Camera`                   | Position, zoom, heading, pitch                       |
+| `MapType`                  | `'standard' \| 'satellite' \| 'hybrid' \| 'terrain'` |
+| `MapProvider`              | `'apple' \| 'google' \| 'openstreetmap' \| 'mapbox'` |
+| `MapViewRef`               | Imperative handle for camera control                 |
+| `MapViewProps`             | Props for `MapView`                                  |
+| `MapViewPropsForProvider`  | Provider-specific `MapView` props                    |
+| `MarkerDescriptor`         | Bulk marker descriptor                               |
+| `MarkerProps`              | Props for `Marker`                                   |
+| `MarkerImage`              | Resolved marker image descriptor                     |
+| `MarkerAnchor`             | Anchor point on marker image (0..1)                  |
+| `MarkerPoint`              | Point offset in dp                                   |
+| `OverlayEnteringAnimation` | Marker / marker-cluster entering animation config    |
+| `PolylineProps`            | Props for `Polyline`                                 |
+| `PolygonProps`             | Props for `Polygon`                                  |
+| `CircleProps`              | Props for `Circle`                                   |
 
 ### Utilities
 
@@ -334,31 +404,42 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 | `regionFromCoordinate(coord, latDelta?, lonDelta?)` | Create a `Region` from a coordinate |
 | `distanceBetween(a, b)`                             | Haversine distance in meters        |
 
-## Roadmap
+## Example app
 
-See [docs/roadmap.md](docs/roadmap.md) for the full development plan.
+```bash
+bun install
+bun run example start
+```
 
-| Phase                    | Status      | Description                                      |
-| ------------------------ | ----------- | ------------------------------------------------ |
-| 1. Skeleton              | In progress | Project structure, types, placeholder components |
-| 2. Nitro View            | Planned     | Nitrogen codegen, native MapView HybridView      |
-| 3. MapKit (iOS)          | Planned     | Apple MapKit integration                         |
-| 4. Google Maps (Android) | Planned     | Google Maps SDK integration                      |
-| 5. Overlays              | Planned     | Markers, polylines, polygons, circles            |
-| 6. Events & gestures     | Planned     | Press, long-press, region change                 |
-| 7. Clustering            | Planned     | Marker clustering                                |
-| 8. Polish & release      | Planned     | Performance, docs, v1.0                          |
+The example app lives in [example](example). It demonstrates provider switching, overlays, clustering, Google Map IDs, and entering animation presets.
 
-## Planned features
+For Google Maps in the example app, configure one shared key or platform-specific keys:
 
-- MapKit and Google Maps rendering
-- Markers with callouts, drag support, and custom bitmap images
-- Polylines, polygons, and circles
-- Camera animations and imperative control
-- Region and press event callbacks
-- Marker clustering
-- Custom map styles
-- Offline tile caching (future)
+```bash
+GOOGLE_MAPS_API_KEY=your_key
+GOOGLE_MAPS_IOS_API_KEY=your_ios_key
+GOOGLE_MAPS_ANDROID_API_KEY=your_android_key
+```
+
+See [example/.env.example](example/.env.example) for the supported environment variables.
+
+## Documentation
+
+- [Expo setup](docs/expo-setup.md)
+- [Architecture](docs/architecture.md)
+- [Roadmap](docs/roadmap.md)
+- [Contributing](CONTRIBUTING.md)
+- [ADRs](docs/adr)
+
+## Common problems
+
+| Problem                                     | Solution                                                                                                                                                       |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Map is blank when using Google Maps         | Add a Google Maps API key through the Expo config plugin, `GoogleMapsIosApiKey` in `Info.plist`, or `com.google.android.geo.API_KEY` in `AndroidManifest.xml`. |
+| New Architecture errors                     | Confirm React Native `0.78+`, New Architecture, and `react-native-nitro-modules` are installed, then rebuild the native app.                                   |
+| Provider throws before rendering            | Check the [supported platforms](#supported-platforms) table. `openstreetmap` and `mapbox` are typed for future support but do not render yet.                  |
+| Expo Go does not load native maps           | Use a development build after `expo prebuild`; native Nitro modules are not available in Expo Go.                                                              |
+| Marker animations affect gesture smoothness | For very large marker sets, prefer clustering, shorter durations, or disable marker/cluster entering animations.                                               |
 
 ## Development
 
@@ -372,6 +453,10 @@ bun run build
 # Run linting and type checks
 bun run lint
 bun run typecheck
+bun run typecheck:provider-types
+
+# Regenerate Nitro bindings after spec changes
+bun run nitrogen
 
 # Start the example app
 bun run example start
@@ -379,10 +464,23 @@ bun run example start
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
-## Architecture
+## Roadmap
 
-See [docs/architecture.md](docs/architecture.md) for the technical architecture overview.
+See [docs/roadmap.md](docs/roadmap.md) for the full development plan.
+
+| Area                 | Status      | Description                                          |
+| -------------------- | ----------- | ---------------------------------------------------- |
+| Project skeleton     | Active      | Project structure, TypeScript types, package exports |
+| Nitro View           | Active      | Nitrogen codegen and native `MapView` HybridView     |
+| MapKit               | Active      | Apple MapKit integration on iOS                      |
+| Google Maps          | Active      | Google Maps SDK integration on iOS and Android       |
+| Overlays             | Active      | Markers, polylines, polygons, circles                |
+| Events & gestures    | Active      | Press, long-press, and region change callbacks       |
+| Clustering           | Active      | Marker clustering                                    |
+| Polish & release     | In progress | Performance work, docs, and v1.0 readiness           |
+| Additional providers | Planned     | OpenStreetMap and Mapbox provider implementations    |
+| Offline tile caching | Future      | Offline map tile support                             |
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
