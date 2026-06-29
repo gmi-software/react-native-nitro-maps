@@ -35,9 +35,11 @@
     "build:plugin": "bun run clean:plugin && tsc --project tsconfig.plugin.json",
     "prepack": "bun run build",
     "test": "jest",
+    "test:ci": "jest --runInBand --ci --watchman=false",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.plugin.json --noEmit",
     "typecheck:provider-types": "tsc --noEmit -p tsconfig.type-tests.json",
-    "nitrogen": "nitrogen && bun ./scripts/patch-nitrogen-generated.mjs"
+    "nitrogen": "nitrogen && bun ./scripts/patch-nitrogen-generated.mjs",
+    "release": "release-it"
   },
   "expo": {
     "plugin": "./app.plugin.js"
@@ -81,6 +83,7 @@
     "react-native": "0.85.3",
     "react-native-builder-bob": "^0.43.0",
     "react-native-nitro-modules": "^0.35.10",
+    "release-it": "^19.0.0",
     "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   },
