@@ -21,29 +21,6 @@ enum MarkerViewportFilter {
     return spatialSubsample(visible, maxCount: maxCount, region: region)
   }
 
-  static func markersFingerprint(_ markers: [MarkerDescriptor]?) -> Int {
-    guard let markers, !markers.isEmpty else {
-      return 0
-    }
-
-    var hasher = Hasher()
-    hasher.combine(markers.count)
-    for marker in markers {
-      hasher.combine(marker.id)
-      hasher.combine(marker.coordinate.latitude)
-      hasher.combine(marker.coordinate.longitude)
-      hasher.combine(marker.title)
-      hasher.combine(marker.subtitle)
-      hasher.combine(marker.draggable)
-      hasher.combine(marker.clusterable)
-      hasher.combine(marker.enteringAnimation?.kind.stringValue)
-      hasher.combine(marker.enteringAnimation?.duration)
-      hasher.combine(marker.enteringAnimation?.delay)
-      hasher.combine(marker.enteringAnimation?.reduceMotion?.stringValue)
-    }
-    return hasher.finalize()
-  }
-
   /// Picks at most one marker per geographic cell so subsampling stays visually even.
   private static func spatialSubsample(
     _ markers: [MarkerDescriptor],

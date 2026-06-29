@@ -34,6 +34,10 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
       forAnnotationViewWithReuseIdentifier: NitroPinAnnotationView.reuseIdentifier
     )
     mapView.register(
+      NitroImageAnnotationView.self,
+      forAnnotationViewWithReuseIdentifier: NitroImageAnnotationView.reuseIdentifier
+    )
+    mapView.register(
       NitroClusterAnnotationView.self,
       forAnnotationViewWithReuseIdentifier: NitroClusterAnnotationView.reuseIdentifier
     )

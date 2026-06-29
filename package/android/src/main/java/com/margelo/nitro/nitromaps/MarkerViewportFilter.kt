@@ -35,25 +35,6 @@ internal object MarkerViewportFilter {
     return spatialSubsample(visible, maxCount, bounds).toList()
   }
 
-  fun markersFingerprint(descriptors: Array<MarkerDescriptor>?): Int {
-    if (descriptors.isNullOrEmpty()) {
-      return 0
-    }
-
-    var hash = descriptors.size
-    for (descriptor in descriptors) {
-      hash = 31 * hash + descriptor.id.hashCode()
-      hash = 31 * hash + descriptor.coordinate.latitude.hashCode()
-      hash = 31 * hash + descriptor.coordinate.longitude.hashCode()
-      hash = 31 * hash + (descriptor.title?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.subtitle?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.draggable?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.clusterable?.hashCode() ?: 0)
-      hash = 31 * hash + (descriptor.enteringAnimation?.hashCode() ?: 0)
-    }
-    return hash
-  }
-
   private fun spatialSubsample(
     markers: List<MarkerDescriptor>,
     maxCount: Int,

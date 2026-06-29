@@ -5,5 +5,6 @@
     "outDir": "lib/typescript",
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/__tests__/**"]
 }

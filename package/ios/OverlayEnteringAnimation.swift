@@ -9,7 +9,7 @@ enum ResolvedOverlayEnteringAnimationKind: Equatable {
   case fadeScale
 }
 
-struct ResolvedOverlayEnteringAnimation {
+struct ResolvedOverlayEnteringAnimation: Equatable {
   let kind: ResolvedOverlayEnteringAnimationKind
   let duration: TimeInterval
   let delay: TimeInterval

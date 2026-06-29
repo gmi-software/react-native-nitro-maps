@@ -21,6 +21,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
@@ -45,7 +46,7 @@ import {
   type MapViewRef,
   type OverlayEnteringAnimation,
 } from 'react-native-nitro-maps';
-import { MAP_SCENARIOS, type MapScenario } from './examples';
+import { MAP_SCENARIOS, type MapScenario, createCustomMarkerImagesScenario, CUSTOM_MARKER_IMAGES_SCENARIO_ID } from './examples';
 
 const MAP_TYPES: MapType[] = ['standard', 'satellite', 'hybrid'];
 type SupportedExampleProvider = Extract<MapProvider, 'apple' | 'google'>;
@@ -263,10 +264,13 @@ const ScenarioChip = memo(function ScenarioChip({
   );
 });
 
+const DOCK_BOTTOM_GAP = 12;
+
 type ScenarioDockProps = {
   scenario: MapScenario;
   scenarioIndex: number;
   expanded: boolean;
+  bottomInset: number;
   mapTypeLabel: MapType;
   providerLabel: string;
   animationOptionId: AnimationOptionId;
@@ -278,12 +282,17 @@ type ScenarioDockProps = {
   onGetCamera: () => void;
   onCycleMapType: () => void;
   onCycleProvider: () => void;
+  customMarkerRotation: number;
+  customMarkerFlat: boolean;
+  onCycleCustomMarkerRotation: () => void;
+  onToggleCustomMarkerFlat: () => void;
 };
 
 const ScenarioDock = memo(function ScenarioDock({
   scenario,
   scenarioIndex,
   expanded,
+  bottomInset,
   mapTypeLabel,
   providerLabel,
   animationOptionId,
@@ -295,6 +304,10 @@ const ScenarioDock = memo(function ScenarioDock({
   onGetCamera,
   onCycleMapType,
   onCycleProvider,
+  customMarkerRotation,
+  customMarkerFlat,
+  onCycleCustomMarkerRotation,
+  onToggleCustomMarkerFlat,
 }: ScenarioDockProps) {
   const chevronRotation = useSharedValue(0);
 
@@ -313,7 +326,11 @@ const ScenarioDock = memo(function ScenarioDock({
     <Animated.View
       entering={FadeInUp.delay(120)}
       layout={LinearTransition.springify()}
-      style={[styles.dock, expanded && styles.dockExpandedContainer]}
+      style={[
+        styles.dock,
+        expanded && styles.dockExpandedContainer,
+        { bottom: bottomInset + DOCK_BOTTOM_GAP },
+      ]}
     >
       {expanded ? (
         <Animated.View
@@ -407,6 +424,29 @@ const ScenarioDock = memo(function ScenarioDock({
               </ScalePressable>
             ) : null}
           </View>
+
+          {scenario.id === CUSTOM_MARKER_IMAGES_SCENARIO_ID ? (
+            <View style={styles.actionRow}>
+              <ScalePressable
+                onPress={onCycleCustomMarkerRotation}
+                style={styles.actionButton}
+              >
+                <Text style={styles.actionButtonIcon}>↻</Text>
+                <Text style={styles.actionButtonText}>
+                  Rotate {customMarkerRotation.toFixed(0)}°
+                </Text>
+              </ScalePressable>
+              <ScalePressable
+                onPress={onToggleCustomMarkerFlat}
+                style={[styles.actionButton, styles.actionButtonAccent]}
+              >
+                <Text style={styles.actionButtonIcon}>▭</Text>
+                <Text style={styles.actionButtonText}>
+                  Flat {customMarkerFlat ? 'on' : 'off'}
+                </Text>
+              </ScalePressable>
+            </View>
+          ) : null}
         </Animated.View>
       ) : null}
 
@@ -593,6 +633,7 @@ const StatusHeader = memo(function StatusHeader({
 });
 
 export default function App() {
+  const insets = useSafeAreaInsets();
   const mapRef = useRef<MapViewRef>(null);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [mapTypeIndex, setMapTypeIndex] = useState(0);
@@ -601,8 +642,20 @@ export default function App() {
   const [status, setStatus] = useState('Waiting for map...');
   const [mapReady, setMapReady] = useState(false);
   const [dockExpanded, setDockExpanded] = useState(false);
+  const [customMarkerRotation, setCustomMarkerRotation] = useState(45);
+  const [customMarkerFlat, setCustomMarkerFlat] = useState(true);
 
-  const scenario = MAP_SCENARIOS[scenarioIndex];
+  const baseScenario = MAP_SCENARIOS[scenarioIndex];
+  const scenario = useMemo(() => {
+    if (baseScenario.id !== CUSTOM_MARKER_IMAGES_SCENARIO_ID) {
+      return baseScenario;
+    }
+
+    return createCustomMarkerImagesScenario({
+      rotation: customMarkerRotation,
+      flat: customMarkerFlat,
+    });
+  }, [baseScenario, customMarkerRotation, customMarkerFlat]);
   const provider = SUPPORTED_MAP_PROVIDERS[providerIndex] ?? 'google';
   const animationOption = ANIMATION_OPTIONS[animationOptionIndex];
   const showsScale = scenario.advanced?.showsScale === true;
@@ -641,6 +694,14 @@ export default function App() {
 
   const cycleMapType = useCallback(() => {
     setMapTypeIndex((current) => (current + 1) % MAP_TYPES.length);
+  }, []);
+
+  const cycleCustomMarkerRotation = useCallback(() => {
+    setCustomMarkerRotation((current) => (current + 45) % 360);
+  }, []);
+
+  const toggleCustomMarkerFlat = useCallback(() => {
+    setCustomMarkerFlat((current) => !current);
   }, []);
 
   const cycleProvider = useCallback(() => {
@@ -772,6 +833,7 @@ export default function App() {
         scenario={scenario}
         scenarioIndex={scenarioIndex}
         expanded={dockExpanded}
+        bottomInset={insets.bottom}
         mapTypeLabel={MAP_TYPES[mapTypeIndex]}
         providerLabel={PROVIDER_LABELS[provider]}
         animationOptionId={animationOption.id}
@@ -783,6 +845,10 @@ export default function App() {
         onGetCamera={handleGetCamera}
         onCycleMapType={cycleMapType}
         onCycleProvider={cycleProvider}
+        customMarkerRotation={customMarkerRotation}
+        customMarkerFlat={customMarkerFlat}
+        onCycleCustomMarkerRotation={cycleCustomMarkerRotation}
+        onToggleCustomMarkerFlat={toggleCustomMarkerFlat}
       />
       <StatusBar style="light" />
     </View>
@@ -886,7 +952,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 28 : 16,
     backgroundColor: palette.surfaceElevated,
     borderWidth: 1,
     borderColor: palette.border,

@@ -23,6 +23,9 @@ class MapOverlayController(
   private val context: ThemedReactContext,
 ) {
   private val markers = HashMap<String, Marker>()
+  private val mainHandler = Handler(Looper.getMainLooper())
+  private val density: Float = context.resources.displayMetrics.density
+  private val markerIconFactory = MarkerIconFactory(context, density) { markers }
   private val markerVersions = HashMap<String, Long>()
   private val clusterByKey = HashMap<String, ClusterElement.Cluster>()
   private val polylines = LinkedHashMap<String, Polyline>()
@@ -42,8 +45,6 @@ class MapOverlayController(
   private var liveRefreshRunnable: Runnable? = null
   private var lastLiveRefreshMs: Long = 0L
   private var computeExecutor = Executors.newSingleThreadExecutor()
-  private val mainHandler = Handler(Looper.getMainLooper())
-  private val density: Float = context.resources.displayMetrics.density
   private val iconFactory = ClusterIconFactory(density)
 
   var markerEnteringAnimation: OverlayEnteringAnimationDescriptor? = null
@@ -58,8 +59,15 @@ class MapOverlayController(
 
   /** Updates the cached map viewport size used to size the clustering grid. */
   fun setViewportSize(widthPx: Int, heightPx: Int) {
+    if (viewWidthPx == widthPx && viewHeightPx == heightPx) {
+      return
+    }
+
     viewWidthPx = widthPx
     viewHeightPx = heightPx
+    if (widthPx > 0 && heightPx > 0 && usesViewportPipeline()) {
+      refreshViewportMarkers()
+    }
   }
 
   fun setClusteringEnabled(enabled: Boolean) {
@@ -104,7 +112,7 @@ class MapOverlayController(
 
   fun setMarkers(descriptors: Array<MarkerDescriptor>?) {
     val next = descriptors ?: emptyArray()
-    val fingerprint = MarkerViewportFilter.markersFingerprint(next)
+    val fingerprint = next.markersFingerprint()
     if (fingerprint == markersFingerprint) {
       return
     }
@@ -240,8 +248,9 @@ class MapOverlayController(
             options.alpha(0f)
           }
           map.addMarker(options)?.also { marker ->
-            marker.tag = key
+            marker.tag = element.descriptor.id
             markers[key] = marker
+            markerIconFactory.applyVisualProps(element.descriptor, marker, key)
             markerVersions[key] = element.renderVersion
             if (shouldAnimate) {
               addedMarkers.add(AddedMarker(key, marker, animation))
@@ -282,6 +291,7 @@ class MapOverlayController(
       marker.alpha = 1f
       when (element) {
         is ClusterElement.Single -> {
+          marker.tag = element.descriptor.id
           marker.position = LatLng(
             element.descriptor.coordinate.latitude,
             element.descriptor.coordinate.longitude,
@@ -289,6 +299,7 @@ class MapOverlayController(
           marker.title = element.descriptor.title
           marker.snippet = element.descriptor.subtitle
           marker.isDraggable = element.descriptor.draggable == true
+          markerIconFactory.applyVisualProps(element.descriptor, marker, key)
           clusterByKey.remove(key)
         }
         is ClusterElement.Cluster -> {
@@ -407,7 +418,9 @@ class MapOverlayController(
           options.alpha(0f)
         }
         map.addMarker(options)?.also { marker ->
-          marker.tag = key
+          marker.tag = descriptor.id
+          markers[key] = marker
+          markerIconFactory.applyVisualProps(descriptor, marker, key)
           markerVersions[key] = element.renderVersion
           animateEntering(listOf(AddedMarker(key, marker, animation)))
         }
@@ -417,6 +430,7 @@ class MapOverlayController(
         val key = "s:" + descriptor.id
         (marker.tag as? String)?.let { cancelEnteringAnimation(it) }
         marker.alpha = 1f
+        marker.tag = descriptor.id
         marker.position = LatLng(
           descriptor.coordinate.latitude,
           descriptor.coordinate.longitude,
@@ -424,6 +438,7 @@ class MapOverlayController(
         marker.title = descriptor.title
         marker.snippet = descriptor.subtitle
         marker.isDraggable = descriptor.draggable == true
+        markerIconFactory.applyVisualProps(descriptor, marker, key)
         markerVersions[key] = element.renderVersion
         marker
       },
@@ -514,13 +529,8 @@ class MapOverlayController(
       return true
     }
 
-    val id = markerOverlayIdFromTag(key)
-    onMarkerPress?.invoke(id)
+    onMarkerPress?.invoke(key)
     return false
-  }
-
-  private fun markerOverlayIdFromTag(tag: String): String {
-    return if (tag.startsWith("s:")) tag.substring(2) else tag
   }
 
   fun updatePolylines(descriptors: Array<PolylineDescriptor>?) {

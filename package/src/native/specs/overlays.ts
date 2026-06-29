@@ -1,5 +1,26 @@
 import type { Coordinate } from '../../types/coordinate';
 
+export interface MarkerImage {
+  uri: string;
+  width?: number;
+  height?: number;
+  scale?: number;
+}
+
+export type MarkerImageSource = number | MarkerImage;
+
+/** Anchor point on the marker image (0..1). */
+export interface MarkerAnchor {
+  x: number;
+  y: number;
+}
+
+/** Point offset in density-independent pixels. */
+export interface MarkerPoint {
+  x: number;
+  y: number;
+}
+
 export type OverlayEnteringAnimationKind =
   | 'none'
   | 'system'
@@ -46,6 +67,24 @@ export interface MarkerDescriptor {
 
   /** Whether the marker participates in clustering when enabled on the map. */
   clusterable?: boolean;
+
+  /** Custom marker image. */
+  image?: MarkerImage;
+
+  /** Anchor point on the image relative to the coordinate (default bottom-center). */
+  anchor?: MarkerAnchor;
+
+  /** Additional center offset in dp (iOS-style). */
+  centerOffset?: MarkerPoint;
+
+  /** Clockwise rotation in degrees. */
+  rotation?: number;
+
+  /** When true, rotate with the map plane instead of staying screen-aligned. */
+  flat?: boolean;
+
+  /** Opacity from 0 to 1. */
+  opacity?: number;
 
   /** Entering animation override for this marker. */
   enteringAnimation?: OverlayEnteringAnimationDescriptor;

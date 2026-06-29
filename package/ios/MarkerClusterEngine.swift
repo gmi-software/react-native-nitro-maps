@@ -404,7 +404,7 @@ final class MarkerRenderPipeline {
 
   func setMarkers(_ descriptors: [MarkerDescriptor]?) -> Bool {
     let next = descriptors ?? []
-    let fingerprint = MarkerViewportFilter.markersFingerprint(next)
+    let fingerprint = next.markersFingerprint()
     guard fingerprint != markersFingerprint else {
       return false
     }

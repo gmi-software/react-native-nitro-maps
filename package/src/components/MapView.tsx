@@ -4,14 +4,12 @@ import { useCollectedOverlays } from '../hooks/useCollectedOverlays';
 import { NativeMapView } from '../native/MapViewNative';
 import type { MapView as NativeMapViewHybrid } from '../native/specs/MapView.nitro';
 import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
+import { normalizeMarkerDescriptors } from '../overlays/normalizeMarkerDescriptors';
 import { resolveMapProvider } from '../providers';
 import type { Coordinate } from '../types/coordinate';
 import type { MapViewProps } from '../types/map';
 import type { MapViewRef } from '../types/ref';
-import {
-  normalizeEnteringAnimation,
-  normalizeMarkerDescriptor,
-} from '../utils/enteringAnimation';
+import { normalizeEnteringAnimation } from '../utils/enteringAnimation';
 
 export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
   {
@@ -67,13 +65,13 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     hasPolygonPress,
     hasCirclePress,
   } = useCollectedOverlays(children);
-  const normalizedMarkersProp = useMemo(
-    () => markersProp?.map(normalizeMarkerDescriptor),
+  const normalizedBulkMarkers = useMemo(
+    () => (markersProp != null ? normalizeMarkerDescriptors(markersProp) : null),
     [markersProp],
   );
 
   const markers =
-    normalizedMarkersProp != null ? normalizedMarkersProp : collectedMarkers;
+    normalizedBulkMarkers != null ? normalizedBulkMarkers : collectedMarkers;
   const polylines =
     polylinesProp != null ? polylinesProp : collectedPolylines;
   const polygons =

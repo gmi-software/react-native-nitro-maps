@@ -72,6 +72,11 @@ function MyMap() {
       <Marker
         coordinate={{ latitude: 52.2297, longitude: 21.0122 }}
         title="Warsaw"
+        image={require('./assets/pin.png')}
+        anchor={{ x: 0.5, y: 1 }}
+        rotation={45}
+        flat
+        opacity={0.9}
       />
       <Polyline
         coordinates={[
@@ -140,6 +145,69 @@ Current provider availability:
 Unsupported explicit providers throw before a native map view is created. Changing `provider` remounts the native map view, so controlled props such as `region`, `camera`, overlays, and callbacks should be supplied again through React props.
 
 Provider-specific TypeScript props are exposed through `MapViewPropsForProvider<P>`. For example, `showsScale` is accepted for `apple` but rejected for `google` because Google Maps SDK has no native scale control.
+
+### Custom marker images
+
+Markers support custom bitmap icons with positioning and styling options:
+
+```tsx
+<Marker
+  coordinate={coord}
+  image={require('./pin.png')}
+  anchor={{ x: 0.5, y: 1.0 }}
+  rotation={45}
+  flat
+  opacity={0.9}
+/>
+
+<MapView
+  markers={[
+    {
+      id: '1',
+      coordinate: coord,
+      image: { uri: 'https://example.com/pin.png' },
+      anchor: { x: 0.5, y: 1 },
+    },
+  ]}
+/>
+```
+
+Supported image sources:
+
+| Source            | Example                         | Notes                                      |
+| ----------------- | ------------------------------- | ------------------------------------------ |
+| Bundled asset     | `require('./pin.png')`          | Resolved on JS side before crossing Nitro  |
+| Local URI         | `{ uri: 'file:///…' }`          | Platform file paths                        |
+| Remote URL        | `{ uri: 'https://…' }`          | Async fetch with in-memory cache           |
+
+Additional props:
+
+| Prop           | Default        | Description                                           |
+| -------------- | -------------- | ----------------------------------------------------- |
+| `anchor`       | `{ x: 0.5, y: 1 }` | Point on the image aligned to the coordinate    |
+| `centerOffset` | —              | Extra offset in dp (MapKit-style)                     |
+| `rotation`     | `0`            | Clockwise rotation in degrees                         |
+| `flat`         | `false`        | Rotate with map plane (Google Maps; limited on iOS)   |
+| `opacity`      | `1`            | Marker opacity from 0 to 1                            |
+
+Platform notes:
+
+- Recommended icon size: up to **128×128 dp**; larger bitmaps are downscaled when `width`/`height` are provided.
+- Retina assets: pass `require()` and let Metro resolve `@2x`/`@3x`; optional explicit `width`/`height`/`scale` on `MarkerImage`.
+- Remote URLs use a basic in-memory cache only (no disk persistence).
+- Custom React Native marker views (`<Marker><View /></Marker>`) are not supported.
+
+### react-native-maps migration (markers)
+
+| react-native-maps      | react-native-nitro-maps              |
+| ---------------------- | -------------------------------------- |
+| `image={require(...)}` | `image={require(...)}`                 |
+| `anchor={{ x, y }}`    | `anchor={{ x, y }}`                    |
+| `centerOffset`         | `centerOffset`                         |
+| `rotation`             | `rotation`                             |
+| `flat`                 | `flat`                                 |
+| `opacity`              | `opacity`                              |
+| Custom RN child views  | Not supported (use bitmap `image`)     |
 
 #### Google Maps setup
 
@@ -217,6 +285,7 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 | Compass                    | Supported                                                   | Supported                                  | Supported                                  | Planned              |
 | Scale control              | Supported                                                   | Unsupported                                | Unsupported                                | Planned per provider |
 | Markers / overlays         | Supported                                                   | Supported                                  | Supported                                  | Planned              |
+| Custom marker images       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
 | Overlay press events       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
 | Marker entering animation  | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
 | Cluster entering animation | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
@@ -250,6 +319,9 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 | `MapViewPropsForProvider` | Provider-specific `MapView` props                    |
 | `MarkerDescriptor`        | Bulk marker descriptor                               |
 | `MarkerProps`             | Props for `Marker`                                   |
+| `MarkerImage`             | Resolved marker image descriptor                     |
+| `MarkerAnchor`            | Anchor point on marker image (0..1)                  |
+| `MarkerPoint`             | Point offset in dp                                   |
 | `OverlayEnteringAnimation` | Marker / marker-cluster entering animation config   |
 | `PolylineProps`           | Props for `Polyline`                                 |
 | `PolygonProps`            | Props for `Polygon`                                  |
@@ -280,7 +352,7 @@ See [docs/roadmap.md](docs/roadmap.md) for the full development plan.
 ## Planned features
 
 - MapKit and Google Maps rendering
-- Markers with callouts and drag support
+- Markers with callouts, drag support, and custom bitmap images
 - Polylines, polygons, and circles
 - Camera animations and imperative control
 - Region and press event callbacks
