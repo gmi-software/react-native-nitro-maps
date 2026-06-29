@@ -39,13 +39,13 @@ module.exports = {
 
 ### Plugin options
 
-| Option                     | Type              | Default | Description                                                                                                                    |
-| -------------------------- | ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `googleMapsApiKey`         | `string`          | —       | Shared fallback for iOS and Android when platform-specific keys are omitted.                                                   |
-| `iosGoogleMapsApiKey`      | `string`          | —       | Injects `GoogleMapsIosApiKey` into `Info.plist` for `provider="google"` on iOS.                                                |
-| `androidGoogleMapsApiKey`  | `string`          | —       | Injects `com.google.android.geo.API_KEY` meta-data on Android.                                                                 |
-| `locationPermission`       | `string \| false` | —       | When set to a string: iOS `NSLocationWhenInUseUsageDescription` + Android `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`. |
-| `locationAlwaysPermission` | `string \| false` | —       | When set to a string: iOS `NSLocationAlwaysAndWhenInUseUsageDescription` + Android `ACCESS_BACKGROUND_LOCATION`.               |
+| Option                     | Type              | Default | Description                                                                                                                                                                                                                     |
+| -------------------------- | ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `googleMapsApiKey`         | `string`          | —       | Shared fallback for iOS and Android when platform-specific keys are omitted.                                                                                                                                                    |
+| `iosGoogleMapsApiKey`      | `string`          | —       | Injects `GoogleMapsIosApiKey` into `Info.plist` for `provider="google"` on iOS.                                                                                                                                                 |
+| `androidGoogleMapsApiKey`  | `string`          | —       | Injects `com.google.android.geo.API_KEY` meta-data on Android.                                                                                                                                                                  |
+| `locationPermission`       | `string \| false` | —       | Foreground location message. Injects iOS `NSLocationWhenInUseUsageDescription` plus Android `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`.                                                                                |
+| `locationAlwaysPermission` | `string \| false` | —       | Background location message. Injects iOS `NSLocationAlwaysAndWhenInUseUsageDescription` plus Android `ACCESS_BACKGROUND_LOCATION`; also supplies foreground usage strings and permissions when `locationPermission` is omitted. |
 
 Omitting Google Maps keys does not fail prebuild. iOS MapKit works without a key, but the iOS and Android Google Maps providers require their platform keys before they can render.
 
@@ -111,6 +111,6 @@ The example's `prebuild` script builds the plugin (`build:plugin`) before runnin
 | Symptom                                     | Fix                                                                                                                            |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Blank Google map                            | Ensure `googleMapsApiKey` or the platform-specific Google Maps key is set, then run `expo prebuild` again.                     |
-| Location dot not showing                    | Set `locationPermission` in the plugin options and re-run prebuild.                                                            |
+| Location dot not showing                    | Set `locationPermission` or `locationAlwaysPermission` in the plugin options and re-run prebuild.                              |
 | Plugin not found                            | Confirm `react-native-nitro-maps` is installed and listed in `plugins`.                                                        |
 | `Cannot find module './plugin/build/index'` | Run `bun run build:plugin` in the package (or `bun run build` from the repo root) before prebuild when using a workspace link. |

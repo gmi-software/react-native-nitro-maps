@@ -116,13 +116,13 @@ export default {
 };
 ```
 
-| Option                     | Platform      | Description                                                                                                                                 |
-| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `googleMapsApiKey`         | iOS + Android | Shared fallback when platform-specific keys are omitted.                                                                                    |
-| `iosGoogleMapsApiKey`      | iOS           | Injects `GoogleMapsIosApiKey` into `Info.plist` for `provider="google"`.                                                                    |
-| `androidGoogleMapsApiKey`  | Android       | Injects `com.google.android.geo.API_KEY` metadata.                                                                                          |
-| `locationPermission`       | iOS + Android | String sets `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. Pass `false` or omit to skip. |
-| `locationAlwaysPermission` | iOS + Android | String sets `NSLocationAlwaysAndWhenInUseUsageDescription` and adds `ACCESS_BACKGROUND_LOCATION`. Pass `false` or omit to skip.             |
+| Option                     | Platform      | Description                                                                                                                                                                                                                                       |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `googleMapsApiKey`         | iOS + Android | Shared fallback when platform-specific keys are omitted.                                                                                                                                                                                          |
+| `iosGoogleMapsApiKey`      | iOS           | Injects `GoogleMapsIosApiKey` into `Info.plist` for `provider="google"`.                                                                                                                                                                          |
+| `androidGoogleMapsApiKey`  | Android       | Injects `com.google.android.geo.API_KEY` metadata.                                                                                                                                                                                                |
+| `locationPermission`       | iOS + Android | Foreground location message. Injects `NSLocationWhenInUseUsageDescription` plus `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. Pass `false` or omit to skip.                                                                                  |
+| `locationAlwaysPermission` | iOS + Android | Background location message. Injects `NSLocationAlwaysAndWhenInUseUsageDescription` plus `ACCESS_BACKGROUND_LOCATION`; also supplies foreground usage strings and permissions when `locationPermission` is omitted. Pass `false` or omit to skip. |
 
 After `expo prebuild`, native projects have the required keys and permissions without manual edits.
 
