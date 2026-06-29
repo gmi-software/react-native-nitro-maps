@@ -13,6 +13,7 @@
     "nitrogen": "bun run --filter react-native-nitro-maps nitrogen",
     "example": "bun run --filter react-native-nitro-maps-example",
     "format": "prettier --write .",
+    "doctor": "npx react-doctor@latest",
     "commitlint": "commitlint",
     "prepare": "husky"
   },
