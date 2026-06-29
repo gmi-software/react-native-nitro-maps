@@ -42,7 +42,7 @@
     },
     "package": {
       "name": "react-native-nitro-maps",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "devDependencies": {
         "@expo/config-plugins": "~56.0.0",
         "@types/jest": "^29.5.14",
