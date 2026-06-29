@@ -16,6 +16,7 @@
   },
   "files": [
     "app.plugin.js",
+    "README.md",
     "src",
     "lib",
     "plugin/build",
@@ -36,7 +37,8 @@
     "build": "bob build && bun run build:plugin",
     "clean:plugin": "rm -rf plugin/build",
     "build:plugin": "bun run clean:plugin && tsc --project tsconfig.plugin.json",
-    "prepack": "bun run build",
+    "prepack": "cp ../README.md ./README.md && bun run build",
+    "postpack": "rm ./README.md",
     "test": "jest",
     "test:ci": "jest --runInBand --ci --watchman=false",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.plugin.json --noEmit",
