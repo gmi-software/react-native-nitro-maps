@@ -1,11 +1,11 @@
 # Roadmap
 
-## Phase 1: Project skeleton (current)
+## Phase 1: Project skeleton
 
 - [x] Monorepo structure with Bun workspaces
 - [x] TypeScript types and interfaces
-- [x] Placeholder React components
-- [x] Nitro config and placeholder spec
+- [x] React component exports
+- [x] Nitro config and initial HybridView spec
 - [x] ESM build pipeline (react-native-builder-bob)
 - [x] ESLint, Prettier, GitHub Actions CI
 - [x] Expo example app
@@ -70,8 +70,10 @@ Delivered incrementally during Phases 3–5; polished for platform consistency i
 
 - [x] Multi-provider `MapView` architecture
 - [x] Google Maps provider on iOS
-- [ ] Performance profiling and optimization
-- [ ] Comprehensive documentation site
+- [x] Public README and package metadata
+- [x] Expo setup documentation
+- [x] CI quality checks
+- [ ] Release performance benchmark pass
 - [ ] Migration guide from react-native-maps
 - [ ] npm publish (v1.0.0)
 - [ ] GitHub release with changelog

@@ -4,10 +4,11 @@
 
 Fast, typed maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
-![React Native](https://img.shields.io/badge/React%20Native-0.78%2B-61dafb)
-![Nitro Modules](https://img.shields.io/badge/Nitro%20Modules-0.35%2B-2563eb)
-![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20Android-111827)
-![License](https://img.shields.io/badge/license-MIT-16a34a)
+[![npm version](https://img.shields.io/npm/v/react-native-nitro-maps.svg)](https://www.npmjs.com/package/react-native-nitro-maps)
+[![CI](https://github.com/gmi-software/react-native-nitro-maps/actions/workflows/ci.yml/badge.svg)](https://github.com/gmi-software/react-native-nitro-maps/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)
+![Expo Development Build](https://img.shields.io/badge/Expo-development%20build-000020.svg)
 
 Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance native map rendering.
 
@@ -22,6 +23,7 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 ## Table of contents
 
 - [Features](#features)
+- [Requirements](#requirements)
 - [Supported platforms](#supported-platforms)
 - [Installation](#installation)
 - [Quick start](#quick-start)
@@ -35,7 +37,7 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 - [Documentation](#documentation)
 - [Common problems](#common-problems)
 - [Development](#development)
-- [Roadmap](#roadmap)
+- [What's next](#whats-next)
 
 ## Features
 
@@ -50,23 +52,28 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 - **Expo friendly** - Config plugin for Google Maps API keys and location permissions.
 - **Tree-shakeable package** - ESM-only build with an explicit `exports` map.
 
-## Supported platforms
+## Requirements
 
-React Native Nitro Maps requires React Native `0.78+` with the New Architecture enabled.
+| Requirement               | Version / note                              |
+| ------------------------- | ------------------------------------------- |
+| React Native              | `0.78+`                                     |
+| React Native architecture | New Architecture enabled                    |
+| Nitro Modules             | `react-native-nitro-modules >=0.35.0`       |
+| iOS                       | `16.0+`                                     |
+| Android                   | `minSdkVersion 24+`                         |
+| Expo                      | Development build; Expo Go is not supported |
+
+Not supported today:
+
+- Custom React Native marker child views such as `<Marker><View /></Marker>`; use bitmap marker images instead.
+- `openstreetmap` and `mapbox` providers; the public provider type reserves these names for future native implementations.
+
+## Supported platforms
 
 | Platform | Default provider | Available providers |
 | -------- | ---------------- | ------------------- |
 | iOS      | `apple`          | `apple`, `google`   |
 | Android  | `google`         | `google`            |
-
-Planned providers are part of the public `MapProvider` type but do not render native maps yet:
-
-| Provider        | iOS       | Android     | Notes                           |
-| --------------- | --------- | ----------- | ------------------------------- |
-| `apple`         | Supported | Unsupported | Apple MapKit                    |
-| `google`        | Supported | Supported   | Google Maps SDK                 |
-| `openstreetmap` | Planned   | Planned     | No rendering implementation yet |
-| `mapbox`        | Planned   | Planned     | No rendering implementation yet |
 
 Unsupported explicit providers throw before a native map view is created.
 
@@ -338,26 +345,26 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 
 ## Capability matrix
 
-| Capability                 | `apple` iOS                                                 | `google` iOS                               | `google` Android                           | Future providers     |
-| -------------------------- | ----------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ | -------------------- |
-| Region / camera            | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Camera animation           | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Visible region             | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Fit to coordinates         | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Map types                  | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Standard, satellite, hybrid, terrain       | Planned              |
-| Gestures                   | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| User location              | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Supported; host app owns permission prompt | Planned              |
-| Compass                    | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Scale control              | Supported                                                   | Unsupported                                | Unsupported                                | Planned per provider |
-| Markers / overlays         | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Custom marker images       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Marker callouts / dragging | Supported                                                   | Supported                                  | Supported                                  | Planned per provider |
-| Overlay press events       | Supported                                                   | Supported                                  | Supported                                  | Planned              |
-| Marker entering animation  | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
-| Cluster entering animation | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            | Planned per provider |
-| Clustering                 | Supported                                                   | Supported                                  | Supported                                  | Planned per provider |
-| Custom styles              | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Google Maps JSON styles                    | Planned per provider |
-| Google Map ID              | Unsupported                                                 | Supported                                  | Supported                                  | Planned per provider |
+| Capability                 | `apple` iOS                                                 | `google` iOS                               | `google` Android                           |
+| -------------------------- | ----------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
+| Region / camera            | Supported                                                   | Supported                                  | Supported                                  |
+| Camera animation           | Supported                                                   | Supported                                  | Supported                                  |
+| Visible region             | Supported                                                   | Supported                                  | Supported                                  |
+| Fit to coordinates         | Supported                                                   | Supported                                  | Supported                                  |
+| Map types                  | Standard, satellite, hybrid; terrain falls back to standard | Standard, satellite, hybrid, terrain       | Standard, satellite, hybrid, terrain       |
+| Gestures                   | Supported                                                   | Supported                                  | Supported                                  |
+| User location              | Supported; host app owns permission prompt                  | Supported; host app owns permission prompt | Supported; host app owns permission prompt |
+| Compass                    | Supported                                                   | Supported                                  | Supported                                  |
+| Scale control              | Supported                                                   | Unsupported                                | Unsupported                                |
+| Markers / overlays         | Supported                                                   | Supported                                  | Supported                                  |
+| Custom marker images       | Supported                                                   | Supported                                  | Supported                                  |
+| Marker callouts / dragging | Supported                                                   | Supported                                  | Supported                                  |
+| Overlay press events       | Supported                                                   | Supported                                  | Supported                                  |
+| Marker entering animation  | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            |
+| Cluster entering animation | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            |
+| Clustering                 | Supported                                                   | Supported                                  | Supported                                  |
+| Custom styles              | Curated subset on iOS 16+                                   | Google Maps JSON styles                    | Google Maps JSON styles                    |
+| Google Map ID              | Unsupported                                                 | Supported                                  | Supported                                  |
 
 ## Public API
 
@@ -433,7 +440,7 @@ See [example/.env.example](example/.env.example) for the supported environment v
 | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Map is blank when using Google Maps         | Add a Google Maps API key through the Expo config plugin, `GoogleMapsIosApiKey` in `Info.plist`, or `com.google.android.geo.API_KEY` in `AndroidManifest.xml`. |
 | New Architecture errors                     | Confirm React Native `0.78+`, New Architecture, and `react-native-nitro-modules` are installed, then rebuild the native app.                                   |
-| Provider throws before rendering            | Check the [supported platforms](#supported-platforms) table. `openstreetmap` and `mapbox` are typed for future support but do not render yet.                  |
+| Provider throws before rendering            | Check the [supported platforms](#supported-platforms) table. `openstreetmap` and `mapbox` are reserved for future support but do not render yet.               |
 | Expo Go does not load native maps           | Use a development build after `expo prebuild`; native Nitro modules are not available in Expo Go.                                                              |
 | Marker animations affect gesture smoothness | For very large marker sets, prefer clustering, shorter durations, or disable marker/cluster entering animations.                                               |
 
@@ -460,22 +467,9 @@ bun run example start
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
-## Roadmap
+## What's next
 
-See [docs/roadmap.md](docs/roadmap.md) for the full development plan.
-
-| Area                 | Status      | Description                                          |
-| -------------------- | ----------- | ---------------------------------------------------- |
-| Project skeleton     | Active      | Project structure, TypeScript types, package exports |
-| Nitro View           | Active      | Nitrogen codegen and native `MapView` HybridView     |
-| MapKit               | Active      | Apple MapKit integration on iOS                      |
-| Google Maps          | Active      | Google Maps SDK integration on iOS and Android       |
-| Overlays             | Active      | Markers, polylines, polygons, circles                |
-| Events & gestures    | Active      | Press, long-press, and region change callbacks       |
-| Clustering           | Active      | Marker clustering                                    |
-| Polish & release     | In progress | Performance work, docs, and v1.0 readiness           |
-| Additional providers | Planned     | OpenStreetMap and Mapbox provider implementations    |
-| Offline tile caching | Future      | Offline map tile support                             |
+The release surface focuses on Apple MapKit and Google Maps SDK providers. Follow-up work is tracked in [docs/roadmap.md](docs/roadmap.md), including additional providers, expanded migration docs, and offline tile support.
 
 ## License
 
