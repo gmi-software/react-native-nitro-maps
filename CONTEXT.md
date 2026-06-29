@@ -1,6 +1,6 @@
 # React Native Nitro Maps
 
-Shared language for the map rendering domain in `react-native-nitro-maps`.
+Shared language for the map rendering domain in `react-native-better-maps`.
 
 ## Language
 

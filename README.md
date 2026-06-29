@@ -1,10 +1,10 @@
-<img width="2172" height="724" alt="react-native-nitro-maps" src="./assets/react-native-nitro-maps.png" />
+<img width="2170" height="725" alt="react-native-better-maps" src="./assets/react-native-better-maps.png" />
 
 <div align="center">
 
 Fast, typed maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
-[![npm version](https://img.shields.io/npm/v/react-native-nitro-maps.svg)](https://www.npmjs.com/package/react-native-nitro-maps)
+[![npm version](https://img.shields.io/npm/v/react-native-better-maps.svg)](https://www.npmjs.com/package/react-native-better-maps)
 [![CI](https://github.com/gmi-software/react-native-nitro-maps/actions/workflows/ci.yml/badge.svg)](https://github.com/gmi-software/react-native-nitro-maps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)
@@ -23,6 +23,8 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 ## Table of contents
 
 - [Features](#features)
+- [iOS Apple Maps clustering comparison](#ios-apple-maps-clustering-comparison)
+- [Android Google Maps clustering comparison](#android-google-maps-clustering-comparison)
 - [Requirements](#requirements)
 - [Supported platforms](#supported-platforms)
 - [Installation](#installation)
@@ -52,6 +54,64 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 - **Expo friendly** - Config plugin for Google Maps API keys and location permissions.
 - **Tree-shakeable package** - ESM-only build with an explicit `exports` map.
 
+## iOS Apple Maps clustering comparison
+
+The clips below compare the same iOS Apple Maps marker clustering scenario in
+`react-native-better-maps` and `react-native-maps` with
+`react-native-clusterer`.
+
+<table>
+  <tr>
+    <th>react-native-better-maps</th>
+    <th>react-native-maps + react-native-clusterer</th>
+  </tr>
+  <tr>
+    <td>Native MapKit-backed clustering through the Nitro map provider.</td>
+    <td>React Native Maps with JS-side clusterer integration.</td>
+  </tr>
+  <tr>
+    <td>
+      <img src="./assets/react-native-better-maps-ios-apple-maps.gif" alt="react-native-better-maps clustering on iOS Apple Maps" width="100%" />
+      <br />
+      <a href="./assets/react-native-better-maps-ios-apple-maps.gif">Open GIF</a>
+    </td>
+    <td>
+      <img src="./assets/react-native-maps-clusterer-ios-apple-maps.gif" alt="react-native-maps with react-native-clusterer on iOS Apple Maps" width="100%" />
+      <br />
+      <a href="./assets/react-native-maps-clusterer-ios-apple-maps.gif">Open GIF</a>
+    </td>
+  </tr>
+</table>
+
+## Android Google Maps clustering comparison
+
+The clips below compare the same Android Google Maps marker clustering scenario
+in `react-native-better-maps` and `react-native-maps` with
+`react-native-clusterer`.
+
+<table>
+  <tr>
+    <th>react-native-better-maps</th>
+    <th>react-native-maps + react-native-clusterer</th>
+  </tr>
+  <tr>
+    <td>Native Google Maps-backed clustering through the Nitro map provider.</td>
+    <td>React Native Maps with JS-side clusterer integration.</td>
+  </tr>
+  <tr>
+    <td>
+      <img src="./assets/react-native-better-maps-android-google-maps.gif" alt="react-native-better-maps clustering on Android Google Maps" width="100%" />
+      <br />
+      <a href="./assets/react-native-better-maps-android-google-maps.gif">Open GIF</a>
+    </td>
+    <td>
+      <img src="./assets/react-native-maps-clusterer-android-google-maps.gif" alt="react-native-maps with react-native-clusterer on Android Google Maps" width="100%" />
+      <br />
+      <a href="./assets/react-native-maps-clusterer-android-google-maps.gif">Open GIF</a>
+    </td>
+  </tr>
+</table>
+
 ## Requirements
 
 | Requirement               | Version / note                              |
@@ -80,19 +140,19 @@ Unsupported explicit providers throw before a native map view is created.
 ## Installation
 
 ```bash
-bun add react-native-nitro-maps react-native-nitro-modules
+bun add react-native-better-maps react-native-nitro-modules
 ```
 
 ```bash
-npm install react-native-nitro-maps react-native-nitro-modules
+npm install react-native-better-maps react-native-nitro-modules
 ```
 
 ```bash
-yarn add react-native-nitro-maps react-native-nitro-modules
+yarn add react-native-better-maps react-native-nitro-modules
 ```
 
 ```bash
-pnpm add react-native-nitro-maps react-native-nitro-modules
+pnpm add react-native-better-maps react-native-nitro-modules
 ```
 
 ### Expo config plugin
@@ -104,7 +164,7 @@ export default {
   expo: {
     plugins: [
       [
-        'react-native-nitro-maps',
+        'react-native-better-maps',
         {
           googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
           locationPermission:
@@ -135,7 +195,7 @@ See [docs/expo-setup.md](docs/expo-setup.md) for a full Expo SDK 56 setup walkth
 ## Quick start
 
 ```tsx
-import { MapView, Marker, Polyline } from 'react-native-nitro-maps';
+import { MapView, Marker, Polyline } from 'react-native-better-maps';
 
 function MyMap() {
   return (
@@ -170,7 +230,7 @@ function MyMap() {
 
 ```tsx
 import { useRef } from 'react';
-import { MapView, type MapViewRef } from 'react-native-nitro-maps';
+import { MapView, type MapViewRef } from 'react-native-better-maps';
 
 function ControlledMap() {
   const mapRef = useRef<MapViewRef>(null);
@@ -192,7 +252,7 @@ function ControlledMap() {
 
 ```tsx
 import { Platform } from 'react-native';
-import { MapView, type MapProvider } from 'react-native-nitro-maps';
+import { MapView, type MapProvider } from 'react-native-better-maps';
 
 const provider: MapProvider = Platform.OS === 'android' ? 'google' : 'apple';
 
@@ -265,7 +325,7 @@ Platform notes:
 
 ### react-native-maps migration (markers)
 
-| react-native-maps      | react-native-nitro-maps            |
+| react-native-maps      | react-native-better-maps            |
 | ---------------------- | ---------------------------------- |
 | `image={require(...)}` | `image={require(...)}`             |
 | `anchor={{ x, y }}`    | `anchor={{ x, y }}`                |
@@ -288,7 +348,7 @@ Add the config plugin to your app config:
   "expo": {
     "plugins": [
       [
-        "react-native-nitro-maps",
+        "react-native-better-maps",
         {
           "googleMapsApiKey": "YOUR_KEY_HERE"
         }

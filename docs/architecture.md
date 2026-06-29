@@ -2,7 +2,7 @@
 
 ## Overview
 
-`react-native-nitro-maps` is a React Native maps library built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture. It provides a familiar component-based API while leveraging JSI for high-performance native communication.
+`react-native-better-maps` is a React Native maps library built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture. It provides a familiar component-based API while leveraging JSI for high-performance native communication.
 
 ## Layer diagram
 
@@ -29,8 +29,8 @@
 ## Monorepo structure
 
 ```
-react-native-nitro-maps/
-├── package/          # Library package (react-native-nitro-maps)
+react-native-better-maps/
+├── package/          # Library package (react-native-better-maps)
 │   ├── src/          # TypeScript source
 │   ├── ios/          # Swift native code
 │   ├── android/      # Kotlin native code

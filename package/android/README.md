@@ -30,7 +30,7 @@ Expo apps can set the key with the package config plugin:
   "expo": {
     "plugins": [
       [
-        "react-native-nitro-maps",
+        "react-native-better-maps",
         {
           "androidGoogleMapsApiKey": "YOUR_API_KEY"
         }

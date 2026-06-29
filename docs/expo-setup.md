@@ -1,17 +1,17 @@
 # Expo setup (SDK 56+)
 
-This guide covers configuring `react-native-nitro-maps` in an Expo app with the New Architecture enabled.
+This guide covers configuring `react-native-better-maps` in an Expo app with the New Architecture enabled.
 
 ## Prerequisites
 
 - Expo SDK 56+
 - React Native 0.78+ with New Architecture enabled (`newArchEnabled: true` in `app.json`)
-- `react-native-nitro-modules` installed alongside `react-native-nitro-maps`
+- `react-native-nitro-modules` installed alongside `react-native-better-maps`
 
 ## Install
 
 ```bash
-bun add react-native-nitro-maps react-native-nitro-modules
+bun add react-native-better-maps react-native-nitro-modules
 ```
 
 ## Config plugin
@@ -25,7 +25,7 @@ module.exports = {
     // ...your existing config
     plugins: [
       [
-        'react-native-nitro-maps',
+        'react-native-better-maps',
         {
           googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
           locationPermission:
@@ -112,5 +112,5 @@ The example's `prebuild` script builds the plugin (`build:plugin`) before runnin
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Blank Google map                            | Ensure `googleMapsApiKey` or the platform-specific Google Maps key is set, then run `expo prebuild` again.                     |
 | Location dot not showing                    | Set `locationPermission` or `locationAlwaysPermission` in the plugin options and re-run prebuild.                              |
-| Plugin not found                            | Confirm `react-native-nitro-maps` is installed and listed in `plugins`.                                                        |
+| Plugin not found                            | Confirm `react-native-better-maps` is installed and listed in `plugins`.                                                        |
 | `Cannot find module './plugin/build/index'` | Run `bun run build:plugin` in the package (or `bun run build` from the repo root) before prebuild when using a workspace link. |

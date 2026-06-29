@@ -1,5 +1,5 @@
 {
-  "name": "react-native-nitro-maps",
+  "name": "react-native-better-maps",
   "version": "1.0.0",
   "description": "High-performance maps for React Native built on Nitro Modules and the New Architecture",
   "main": "./lib/module/index.js",
@@ -24,7 +24,7 @@
     "android",
     "cpp",
     "nitro.json",
-    "react-native-nitro-maps.podspec",
+    "react-native-better-maps.podspec",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__"

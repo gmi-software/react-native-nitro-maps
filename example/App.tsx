@@ -45,7 +45,7 @@ import {
   type MapType,
   type MapViewRef,
   type OverlayEnteringAnimation,
-} from 'react-native-nitro-maps';
+} from 'react-native-better-maps';
 import { MAP_SCENARIOS, type MapScenario, createCustomMarkerImagesScenario, CUSTOM_MARKER_IMAGES_SCENARIO_ID } from './examples';
 
 const MAP_TYPES: MapType[] = ['standard', 'satellite', 'hybrid'];

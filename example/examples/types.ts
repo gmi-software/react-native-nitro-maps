@@ -1,4 +1,4 @@
-import type { EdgePadding, MapViewProps, Region } from 'react-native-nitro-maps';
+import type { EdgePadding, MapViewProps, Region } from 'react-native-better-maps';
 
 export interface MapScenarioAdvancedOptions {
   clusteringEnabled?: boolean;
