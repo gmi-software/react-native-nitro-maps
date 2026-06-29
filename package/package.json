@@ -60,7 +60,7 @@
     "url": "https://github.com/gmi-software/react-native-nitro-maps/issues"
   },
   "homepage": "https://github.com/gmi-software/react-native-nitro-maps#readme",
-  "author": "GMI Software",
+  "author": "gmi.software",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
