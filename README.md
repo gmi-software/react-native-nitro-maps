@@ -15,10 +15,6 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 
 **Full documentation** lives in [`docs/`](docs). Start with [Expo setup](docs/expo-setup.md), [Architecture](docs/architecture.md), and [Roadmap](docs/roadmap.md).
 
-> **Status: Work in Progress**
->
-> Native rendering exists for Apple MapKit on iOS and Google Maps SDK on iOS and Android. Additional providers are planned.
-
 </div>
 
 ---
