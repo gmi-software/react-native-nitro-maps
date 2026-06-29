@@ -5,7 +5,7 @@
 Fast, typed maps for React Native, built on [Nitro Modules](https://nitro.margelo.com) and the New Architecture.
 
 [![npm version](https://img.shields.io/npm/v/react-native-better-maps.svg)](https://www.npmjs.com/package/react-native-better-maps)
-[![CI](https://github.com/gmi-software/react-native-nitro-maps/actions/workflows/ci.yml/badge.svg)](https://github.com/gmi-software/react-native-nitro-maps/actions/workflows/ci.yml)
+[![CI](https://github.com/gmi-software/react-native-better-maps/actions/workflows/ci.yml/badge.svg)](https://github.com/gmi-software/react-native-better-maps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)
 ![Expo Development Build](https://img.shields.io/badge/Expo-development%20build-000020.svg)

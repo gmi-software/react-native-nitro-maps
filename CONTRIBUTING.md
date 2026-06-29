@@ -94,7 +94,7 @@ chore: add commitlint configuration
 
 ## Reporting issues
 
-Please use [GitHub Issues](https://github.com/gmi-software/react-native-nitro-maps/issues) and include:
+Please use [GitHub Issues](https://github.com/gmi-software/react-native-better-maps/issues) and include:
 
 - Library version
 - React Native / Expo version

@@ -56,12 +56,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/gmi-software/react-native-nitro-maps.git"
+    "url": "https://github.com/gmi-software/react-native-better-maps.git"
   },
   "bugs": {
-    "url": "https://github.com/gmi-software/react-native-nitro-maps/issues"
+    "url": "https://github.com/gmi-software/react-native-better-maps/issues"
   },
-  "homepage": "https://github.com/gmi-software/react-native-nitro-maps#readme",
+  "homepage": "https://github.com/gmi-software/react-native-better-maps#readme",
   "author": "gmi.software",
   "license": "MIT",
   "publishConfig": {
