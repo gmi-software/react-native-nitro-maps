@@ -163,7 +163,7 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
     if #available(iOS 16.0, *),
        let mapFeature = view.annotation as? MKMapFeatureAnnotation,
-       handleMapFeatureSelection(mapFeature, in: mapView) {
+       handleMapFeatureSelection(mapFeature) {
       return
     }
 
@@ -191,15 +191,12 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
     if #available(iOS 16.0, *),
        let mapFeature = annotation as? MKMapFeatureAnnotation {
-      _ = handleMapFeatureSelection(mapFeature, in: mapView)
+      _ = handleMapFeatureSelection(mapFeature)
     }
   }
 
   @available(iOS 16.0, *)
-  private func handleMapFeatureSelection(
-    _ mapFeature: MKMapFeatureAnnotation,
-    in mapView: MKMapView
-  ) -> Bool {
+  private func handleMapFeatureSelection(_ mapFeature: MKMapFeatureAnnotation) -> Bool {
     guard mapFeature.featureType == .pointOfInterest else {
       return false
     }
@@ -217,7 +214,6 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
     }
 
     parent?.notifyPoiPress(annotation: mapFeature)
-    mapView.deselectAnnotation(mapFeature, animated: false)
     return true
   }
 
