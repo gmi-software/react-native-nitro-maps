@@ -4,6 +4,8 @@ import UIKit
 /// Delegate and gesture handler for the Apple MapKit provider adapter.
 final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
   weak var parent: AppleMapProviderAdapter?
+  private var handledMapFeatureSelections = Set<ObjectIdentifier>()
+  private var shouldSuppressNextBackgroundPress = false
 
   func installGestureRecognizers(on mapView: MKMapView) {
     let tapRecognizer = UITapGestureRecognizer(
@@ -36,7 +38,18 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
       return
     }
 
-    parent.notifyPress(at: point)
+    DispatchQueue.main.async { [weak self, weak parent] in
+      guard let self, let parent else {
+        return
+      }
+
+      if self.shouldSuppressNextBackgroundPress {
+        self.shouldSuppressNextBackgroundPress = false
+        return
+      }
+
+      parent.notifyPress(at: point)
+    }
   }
 
   @objc private func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
@@ -148,6 +161,12 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   }
 
   func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+    if #available(iOS 16.0, *),
+       let mapFeature = view.annotation as? MKMapFeatureAnnotation,
+       handleMapFeatureSelection(mapFeature) {
+      return
+    }
+
     if let cluster = view.annotation as? MapClusterAnnotation {
       let coordinate = cluster.coordinate
       parent?.onClusterPress?(
@@ -167,6 +186,35 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
     if marker.title == nil && marker.subtitle == nil {
       mapView.deselectAnnotation(view.annotation, animated: true)
     }
+  }
+
+  func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
+    if #available(iOS 16.0, *),
+       let mapFeature = annotation as? MKMapFeatureAnnotation {
+      _ = handleMapFeatureSelection(mapFeature)
+    }
+  }
+
+  @available(iOS 16.0, *)
+  private func handleMapFeatureSelection(_ mapFeature: MKMapFeatureAnnotation) -> Bool {
+    guard mapFeature.featureType == .pointOfInterest else {
+      return false
+    }
+
+    let mapFeatureID = ObjectIdentifier(mapFeature)
+    guard !handledMapFeatureSelections.contains(mapFeatureID) else {
+      return true
+    }
+
+    handledMapFeatureSelections.insert(mapFeatureID)
+    shouldSuppressNextBackgroundPress = true
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+      self?.handledMapFeatureSelections.remove(mapFeatureID)
+      self?.shouldSuppressNextBackgroundPress = false
+    }
+
+    parent?.notifyPoiPress(annotation: mapFeature)
+    return true
   }
 
   func mapView(

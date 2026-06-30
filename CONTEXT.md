@@ -13,8 +13,16 @@ A Google Cloud Map ID used by the Google Maps SDK to apply cloud-based map styli
 _Avoid_: API key, style JSON
 
 **Marker**:
-A point annotation rendered at a geographic coordinate on the map.
+A point annotation created and owned by the app at a geographic coordinate on the map.
 _Avoid_: Pin
+
+**Point of Interest (POI)**:
+A provider-owned map feature rendered by the base map, such as a business, park, school, or public place. It is not a `Marker` because the app does not create, own, or update it as an overlay.
+_Avoid_: Marker, app marker, custom marker
+
+**Native POI Detail Presentation**:
+A provider-owned native UI surface that presents details for a selected point of interest.
+_Avoid_: React Native callout, custom POI card
 
 **Marker Cluster**:
 A grouped marker representation shown when nearby clusterable markers collapse into one map annotation.

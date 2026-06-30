@@ -230,6 +230,7 @@ class GoogleMapProviderAdapter(
   override var onRegionChangeComplete: ((region: Region) -> Unit)? = null
   override var onMapReady: (() -> Unit)? = null
   override var onPress: ((coordinate: Coordinate) -> Unit)? = null
+  override var onPoiPress: ((event: NativePoiPressEvent) -> Unit)? = null
   override var onLongPress: ((coordinate: Coordinate) -> Unit)? = null
 
   private var _markers: Array<MarkerDescriptor>? = null
@@ -417,6 +418,18 @@ class GoogleMapProviderAdapter(
     }
     map.setOnMapClickListener { latLng ->
       onPress?.invoke(latLng.toCoordinate())
+    }
+    map.setOnPoiClickListener { poi ->
+      onPoiPress?.invoke(
+        NativePoiPressEvent(
+          provider = MapProvider.GOOGLE,
+          coordinate = poi.latLng.toCoordinate(),
+          name = poi.name,
+          category = null,
+          rawCategory = null,
+          placeId = poi.placeId,
+        ),
+      )
     }
     map.setOnMapLongClickListener { latLng ->
       onLongPress?.invoke(latLng.toCoordinate())
@@ -751,6 +764,7 @@ class GoogleMapProviderAdapter(
     onRegionChangeComplete = null
     onMapReady = null
     onPress = null
+    onPoiPress = null
     onLongPress = null
     onMarkerPress = null
     onMarkerDragEnd = null

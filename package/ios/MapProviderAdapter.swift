@@ -26,6 +26,7 @@ protocol MapProviderAdapter: AnyObject {
   var onRegionChangeComplete: ((Region) -> Void)? { get set }
   var onMapReady: (() -> Void)? { get set }
   var onPress: ((Coordinate) -> Void)? { get set }
+  var onPoiPress: ((NativePoiPressEvent) -> Void)? { get set }
   var onLongPress: ((Coordinate) -> Void)? { get set }
 
   var markers: [MarkerDescriptor]? { get set }
@@ -74,6 +75,7 @@ final class UnavailableMapProviderAdapter: MapProviderAdapter {
   var onRegionChangeComplete: ((Region) -> Void)?
   var onMapReady: (() -> Void)?
   var onPress: ((Coordinate) -> Void)?
+  var onPoiPress: ((NativePoiPressEvent) -> Void)?
   var onLongPress: ((Coordinate) -> Void)?
 
   var markers: [MarkerDescriptor]?

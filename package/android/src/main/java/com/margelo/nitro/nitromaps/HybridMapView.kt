@@ -197,6 +197,12 @@ class HybridMapView(private val context: ThemedReactContext) :
       adapter?.onPress = value
     }
 
+  override var onPoiPress: ((event: NativePoiPressEvent) -> Unit)? = null
+    set(value) {
+      field = value
+      adapter?.onPoiPress = value
+    }
+
   override var onLongPress: ((coordinate: Coordinate) -> Unit)? = null
     set(value) {
       field = value
@@ -309,6 +315,7 @@ class HybridMapView(private val context: ThemedReactContext) :
     onRegionChangeComplete = null
     onMapReady = null
     onPress = null
+    onPoiPress = null
     onLongPress = null
     markers = null
     polylines = null
@@ -381,6 +388,7 @@ class HybridMapView(private val context: ThemedReactContext) :
     adapter.onRegionChangeComplete = onRegionChangeComplete
     adapter.onMapReady = onMapReady
     adapter.onPress = onPress
+    adapter.onPoiPress = onPoiPress
     adapter.onLongPress = onLongPress
     adapter.markers = markers
     adapter.polylines = polylines

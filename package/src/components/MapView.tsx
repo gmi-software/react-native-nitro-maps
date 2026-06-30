@@ -2,12 +2,15 @@ import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'r
 import { callback } from 'react-native-nitro-modules';
 import { useCollectedOverlays } from '../hooks/useCollectedOverlays';
 import { NativeMapView } from '../native/MapViewNative';
-import type { MapView as NativeMapViewHybrid } from '../native/specs/MapView.nitro';
+import type {
+  MapView as NativeMapViewHybrid,
+  NativePoiPressEvent,
+} from '../native/specs/MapView.nitro';
 import { OverlayType, overlayCallbackKey } from '../overlays/overlayType';
 import { normalizeMarkerDescriptors } from '../overlays/normalizeMarkerDescriptors';
 import { resolveMapProvider } from '../providers';
 import type { Coordinate } from '../types/coordinate';
-import type { MapViewProps } from '../types/map';
+import type { MapViewProps, PoiPressEvent } from '../types/map';
 import type { MapViewRef } from '../types/ref';
 import { normalizeEnteringAnimation } from '../utils/enteringAnimation';
 
@@ -41,6 +44,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     onRegionChangeComplete,
     onMapReady,
     onPress,
+    onPoiPress,
     onLongPress,
     onClusterPress,
     onMarkerPress: onMarkerPressProp,
@@ -89,6 +93,9 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
     onPolygonPressProp != null || hasPolygonPress;
   const hasCirclePressHandler =
     onCirclePressProp != null || hasCirclePress;
+  const onPoiPressCallback = onPoiPress as
+    | ((event: PoiPressEvent) => void)
+    | undefined;
 
   const handleMarkerPress = useCallback(
     (id: string) => {
@@ -128,6 +135,33 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
       onCirclePressProp?.(id);
     },
     [callbackRegistry, onCirclePressProp],
+  );
+
+  const handlePoiPress = useCallback(
+    (event: NativePoiPressEvent) => {
+      if (event.provider === 'apple') {
+        const poiEvent: PoiPressEvent = {
+          provider: 'apple',
+          coordinate: event.coordinate,
+          name: event.name,
+          category: event.category ?? 'unknown',
+          rawCategory: event.rawCategory,
+        };
+        onPoiPressCallback?.(poiEvent);
+        return;
+      }
+
+      if (event.provider === 'google' && event.name != null && event.placeId != null) {
+        const poiEvent: PoiPressEvent = {
+          provider: 'google',
+          coordinate: event.coordinate,
+          name: event.name,
+          placeId: event.placeId,
+        };
+        onPoiPressCallback?.(poiEvent);
+      }
+    },
+    [onPoiPressCallback],
   );
 
   useImperativeHandle(
@@ -197,6 +231,7 @@ export const MapView = forwardRef<MapViewRef, MapViewProps>(function MapView(
       }
       onMapReady={onMapReady == null ? undefined : callback(onMapReady)}
       onPress={onPress == null ? undefined : callback(onPress)}
+      onPoiPress={onPoiPress == null ? undefined : callback(handlePoiPress)}
       onLongPress={onLongPress == null ? undefined : callback(onLongPress)}
       onClusterPress={
         onClusterPress == null ? undefined : callback(onClusterPress)

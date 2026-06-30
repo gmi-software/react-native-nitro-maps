@@ -28,6 +28,7 @@ interface MapProviderAdapter {
   var onRegionChangeComplete: ((region: Region) -> Unit)?
   var onMapReady: (() -> Unit)?
   var onPress: ((coordinate: Coordinate) -> Unit)?
+  var onPoiPress: ((event: NativePoiPressEvent) -> Unit)?
   var onLongPress: ((coordinate: Coordinate) -> Unit)?
 
   var markers: Array<MarkerDescriptor>?

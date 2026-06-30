@@ -7,6 +7,7 @@ import type {
   PolygonDescriptor,
   PolylineDescriptor,
 } from '../native/specs/overlays';
+import type { ApplePoiCategory } from '../native/specs/MapView.nitro';
 import type { MarkerDescriptor, OverlayEnteringAnimation } from './overlays';
 import type { EdgePadding, Region } from './region';
 
@@ -20,10 +21,27 @@ export type MapType = 'standard' | 'satellite' | 'hybrid' | 'terrain';
  */
 export type MapProvider = 'apple' | 'google' | 'openstreetmap' | 'mapbox';
 
+export interface ApplePoiPressEvent {
+  provider: 'apple';
+  coordinate: Coordinate;
+  name?: string;
+  category: ApplePoiCategory;
+  rawCategory?: string;
+}
+
+export interface GooglePoiPressEvent {
+  provider: 'google';
+  coordinate: Coordinate;
+  name: string;
+  placeId: string;
+}
+
+export type PoiPressEvent = ApplePoiPressEvent | GooglePoiPressEvent;
+
 /**
  * Props shared by all map providers.
  */
-interface BaseMapViewProps {
+interface BaseMapViewProps<PoiEvent extends PoiPressEvent = PoiPressEvent> {
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 
@@ -96,6 +114,9 @@ interface BaseMapViewProps {
   /** Called when the user presses the map. */
   onPress?: (coordinate: Coordinate) => void;
 
+  /** Called when the user presses a provider-owned point of interest. */
+  onPoiPress?: (event: PoiEvent) => void;
+
   /** Called when the user long-presses the map. */
   onLongPress?: (coordinate: Coordinate) => void;
 
@@ -106,7 +127,7 @@ interface BaseMapViewProps {
   markerEnteringAnimation?: OverlayEnteringAnimation;
 }
 
-interface ExistingDefaultProviderProps extends BaseMapViewProps {
+interface ExistingDefaultProviderProps extends BaseMapViewProps<PoiPressEvent> {
   /**
    * Optional provider. When omitted, iOS uses Apple MapKit and Android uses
    * Google Maps.
@@ -129,7 +150,7 @@ interface ExistingDefaultProviderProps extends BaseMapViewProps {
   clusterEnteringAnimation?: OverlayEnteringAnimation;
 }
 
-interface AppleMapViewProps extends BaseMapViewProps {
+interface AppleMapViewProps extends BaseMapViewProps<ApplePoiPressEvent> {
   provider: 'apple';
 
   /** Google Map IDs are only supported by the Google provider. */
@@ -148,7 +169,7 @@ interface AppleMapViewProps extends BaseMapViewProps {
   clusterEnteringAnimation?: OverlayEnteringAnimation;
 }
 
-interface GoogleMapViewProps extends BaseMapViewProps {
+interface GoogleMapViewProps extends BaseMapViewProps<GooglePoiPressEvent> {
   provider: 'google';
 
   /** Google Cloud Map ID for cloud-based Google Maps styling. */
@@ -174,6 +195,7 @@ interface OpenStreetMapViewProps extends BaseMapViewProps {
   customMapStyle?: never;
   clusteringEnabled?: never;
   clusterEnteringAnimation?: never;
+  onPoiPress?: never;
 }
 
 interface MapboxMapViewProps extends BaseMapViewProps {
@@ -183,6 +205,7 @@ interface MapboxMapViewProps extends BaseMapViewProps {
   customMapStyle?: never;
   clusteringEnabled?: never;
   clusterEnteringAnimation?: never;
+  onPoiPress?: never;
 }
 
 export type MapViewPropsForProvider<Provider extends MapProvider> =
