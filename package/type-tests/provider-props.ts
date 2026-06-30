@@ -1,4 +1,8 @@
-import type { MapViewProps, MapViewPropsForProvider } from '../src';
+import type {
+  ApplePoiCategory,
+  MapViewProps,
+  MapViewPropsForProvider,
+} from '../src';
 
 export const appleProps: MapViewPropsForProvider<'apple'> = {
   provider: 'apple',
@@ -7,7 +11,7 @@ export const appleProps: MapViewPropsForProvider<'apple'> = {
   markerEnteringAnimation: { preset: 'fade-scale', duration: 180 },
   clusterEnteringAnimation: 'system',
   onPoiPress: (event) => {
-    event.category satisfies string;
+    event.category satisfies ApplePoiCategory;
     // @ts-expect-error Apple POI events do not include Google place IDs.
     event.placeId satisfies string;
   },
@@ -34,7 +38,7 @@ export const defaultProviderProps: MapViewProps = {
     if (event.provider === 'google') {
       event.placeId satisfies string;
     } else {
-      event.category satisfies string;
+      event.category satisfies ApplePoiCategory;
     }
   },
   markers: [
