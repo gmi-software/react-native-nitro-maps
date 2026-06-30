@@ -30,6 +30,7 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [Map providers](#map-providers)
+- [Native POI press events](#native-poi-press-events)
 - [Custom marker images](#custom-marker-images)
 - [Google Maps setup](#google-maps-setup)
 - [Marker entering animations](#marker-entering-animations)
@@ -48,6 +49,7 @@ Built with [Nitro Modules](https://nitro.margelo.com/) for high-performance nati
 - **Unified map API** - One typed React API for Apple MapKit and Google Maps SDK.
 - **Provider-aware props** - TypeScript narrows provider-specific props with `MapViewPropsForProvider<P>`.
 - **Markers and overlays** - Markers with title/subtitle callouts and drag support, plus polylines, polygons, and circles.
+- **Native POI taps** - `onPoiPress` reports provider-owned places from Apple Maps and Google Maps without confusing them with app-owned markers.
 - **Camera control** - Declarative region/camera props plus imperative camera helpers.
 - **Marker clustering** - Native marker clustering for large point sets.
 - **Native entering animations** - Configurable marker and cluster entrance animations.
@@ -272,6 +274,38 @@ Changing `provider` remounts the native map view. Controlled props such as `regi
 
 Provider-specific TypeScript props are exposed through `MapViewPropsForProvider<P>`. For example, `showsScale` is accepted for `apple` but rejected for `google` because Google Maps SDK has no native scale control.
 
+## Native POI press events
+
+Provider-owned points of interest are base-map features supplied by Apple Maps or Google Maps, such as restaurants, parks, schools, hotels, and stores. They are separate from app-owned `<Marker />` elements and bulk `markers`; marker presses still use `Marker.onPress` and `MapView.onMarkerPress`.
+
+`onPoiPress` is enabled automatically when provided. A POI tap emits only `onPoiPress`; it does not also emit background-map `onPress`.
+
+```tsx
+<MapView
+  provider="google"
+  style={{ flex: 1 }}
+  onPoiPress={(event) => {
+    console.log(event.provider, event.name, event.placeId);
+  }}
+/>
+
+<MapView
+  provider="apple"
+  style={{ flex: 1 }}
+  onPoiPress={(event) => {
+    console.log(event.provider, event.name, event.category, event.rawCategory);
+  }}
+/>
+```
+
+Provider-specific props narrow the callback payload:
+
+| Provider | Payload |
+| --- | --- |
+| `apple` | `{ provider: 'apple', coordinate, name?, category, rawCategory? }` |
+| `google` | `{ provider: 'google', coordinate, name, placeId }` |
+| omitted | `ApplePoiPressEvent \| GooglePoiPressEvent` because the runtime default depends on platform |
+
 ## Custom marker images
 
 Markers support custom bitmap icons with positioning and styling options:
@@ -420,6 +454,7 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 | Custom marker images       | Supported                                                   | Supported                                  | Supported                                  |
 | Marker callouts / dragging | Supported                                                   | Supported                                  | Supported                                  |
 | Overlay press events       | Supported                                                   | Supported                                  | Supported                                  |
+| Native POI press events    | Supported on iOS 16+                                        | Supported                                  | Supported                                  |
 | Marker entering animation  | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            |
 | Cluster entering animation | System + `fade`, `fade-scale`                               | System + `fade`; scale fallback            | System + `fade`; scale fallback            |
 | Clustering                 | Supported                                                   | Supported                                  | Supported                                  |
@@ -447,6 +482,10 @@ On Google Maps providers, marker and cluster entering animations can reduce UI-t
 | `Camera`                   | Position, zoom, heading, pitch                       |
 | `MapType`                  | `'standard' \| 'satellite' \| 'hybrid' \| 'terrain'` |
 | `MapProvider`              | `'apple' \| 'google' \| 'openstreetmap' \| 'mapbox'` |
+| `PoiPressEvent`            | Provider-discriminated native POI press payload             |
+| `ApplePoiPressEvent`       | Apple Maps POI payload with category                        |
+| `GooglePoiPressEvent`      | Google Maps POI payload with place ID                       |
+| `ApplePoiCategory`         | Known MapKit POI categories plus `unknown`                  |
 | `MapViewRef`               | Imperative handle for camera control                 |
 | `MapViewProps`             | Props for `MapView`                                  |
 | `MapViewPropsForProvider`  | Provider-specific `MapView` props                    |
@@ -474,7 +513,7 @@ bun install
 bun run example start
 ```
 
-The example app lives in [example](example). It demonstrates provider switching, overlays, clustering, Google Map IDs, and entering animation presets.
+The example app lives in [example](example). It demonstrates provider switching, overlays, clustering, Google Map IDs, entering animation presets, and native POI tap logging.
 
 For Google Maps in the example app, configure one shared key or platform-specific keys:
 

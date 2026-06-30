@@ -15,6 +15,93 @@ import type {
   PolylineDescriptor,
 } from './overlays';
 
+export type ApplePoiCategory =
+  | 'animalService'
+  | 'airport'
+  | 'amusementPark'
+  | 'aquarium'
+  | 'atm'
+  | 'automotiveRepair'
+  | 'bakery'
+  | 'bank'
+  | 'baseball'
+  | 'basketball'
+  | 'beach'
+  | 'beauty'
+  | 'bowling'
+  | 'brewery'
+  | 'cafe'
+  | 'campground'
+  | 'carRental'
+  | 'castle'
+  | 'conventionCenter'
+  | 'distillery'
+  | 'evCharger'
+  | 'fairground'
+  | 'fireStation'
+  | 'fishing'
+  | 'fitnessCenter'
+  | 'foodMarket'
+  | 'fortress'
+  | 'gasStation'
+  | 'golf'
+  | 'goKart'
+  | 'hiking'
+  | 'hospital'
+  | 'hotel'
+  | 'kayaking'
+  | 'landmark'
+  | 'laundry'
+  | 'library'
+  | 'mailbox'
+  | 'marina'
+  | 'miniGolf'
+  | 'movieTheater'
+  | 'museum'
+  | 'musicVenue'
+  | 'nationalMonument'
+  | 'nationalPark'
+  | 'nightlife'
+  | 'park'
+  | 'parking'
+  | 'pharmacy'
+  | 'planetarium'
+  | 'playground'
+  | 'police'
+  | 'postOffice'
+  | 'publicTransport'
+  | 'religiousSite'
+  | 'restaurant'
+  | 'restroom'
+  | 'rockClimbing'
+  | 'rvPark'
+  | 'school'
+  | 'skatePark'
+  | 'skating'
+  | 'skiing'
+  | 'soccer'
+  | 'spa'
+  | 'stadium'
+  | 'store'
+  | 'surfing'
+  | 'swimming'
+  | 'tennis'
+  | 'theater'
+  | 'university'
+  | 'volleyball'
+  | 'winery'
+  | 'zoo'
+  | 'unknown';
+
+export interface NativePoiPressEvent {
+  provider: MapProvider;
+  coordinate: Coordinate;
+  name?: string;
+  category?: ApplePoiCategory;
+  rawCategory?: string;
+  placeId?: string;
+}
+
 /**
  * Native props for the {@linkcode MapView} Nitro HybridView.
  *
@@ -90,6 +177,9 @@ export interface MapViewProps extends HybridViewProps {
 
   /** Called when the user presses the map. */
   onPress?: (coordinate: Coordinate) => void;
+
+  /** Called when the user presses a provider-owned point of interest. */
+  onPoiPress?: (event: NativePoiPressEvent) => void;
 
   /** Called when the user long-presses the map. */
   onLongPress?: (coordinate: Coordinate) => void;

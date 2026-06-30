@@ -6,6 +6,11 @@ export const appleProps: MapViewPropsForProvider<'apple'> = {
   clusteringEnabled: true,
   markerEnteringAnimation: { preset: 'fade-scale', duration: 180 },
   clusterEnteringAnimation: 'system',
+  onPoiPress: (event) => {
+    event.category satisfies string;
+    // @ts-expect-error Apple POI events do not include Google place IDs.
+    event.placeId satisfies string;
+  },
 };
 
 export const googleProps: MapViewPropsForProvider<'google'> = {
@@ -14,12 +19,24 @@ export const googleProps: MapViewPropsForProvider<'google'> = {
   customMapStyle: '[]',
   clusteringEnabled: true,
   clusterEnteringAnimation: false,
+  onPoiPress: (event) => {
+    event.placeId satisfies string;
+    // @ts-expect-error Google POI events do not include Apple categories.
+    event.category satisfies string;
+  },
 };
 
 export const defaultProviderProps: MapViewProps = {
   showsScale: true,
   customMapStyle: '[]',
   markerEnteringAnimation: false,
+  onPoiPress: (event) => {
+    if (event.provider === 'google') {
+      event.placeId satisfies string;
+    } else {
+      event.category satisfies string;
+    }
+  },
   markers: [
     {
       id: 'marker-1',
@@ -64,8 +81,21 @@ export const openStreetMapClusterAnimationProps: MapViewPropsForProvider<'openst
     clusterEnteringAnimation: { preset: 'fade' },
   };
 
+export const openStreetMapPoiPressProps: MapViewPropsForProvider<'openstreetmap'> =
+  {
+    provider: 'openstreetmap',
+    // @ts-expect-error Planned OpenStreetMap support has no native POI press capability yet.
+    onPoiPress: () => {},
+  };
+
 export const mapboxClusterAnimationProps: MapViewPropsForProvider<'mapbox'> = {
   provider: 'mapbox',
   // @ts-expect-error Planned Mapbox support has no cluster animation capability yet.
   clusterEnteringAnimation: { preset: 'fade' },
+};
+
+export const mapboxPoiPressProps: MapViewPropsForProvider<'mapbox'> = {
+  provider: 'mapbox',
+  // @ts-expect-error Planned Mapbox support has no native POI press capability yet.
+  onPoiPress: () => {},
 };

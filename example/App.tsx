@@ -45,6 +45,7 @@ import {
   type MapType,
   type MapViewRef,
   type OverlayEnteringAnimation,
+  type PoiPressEvent,
 } from 'react-native-better-maps';
 import { MAP_SCENARIOS, type MapScenario, createCustomMarkerImagesScenario, CUSTOM_MARKER_IMAGES_SCENARIO_ID } from './examples';
 
@@ -495,6 +496,7 @@ type MapSceneProps = {
   onMarkerDragEnd: (id: string, coordinate: Coordinate) => void;
   onOverlayPress: (label: string) => void;
   onPress: (coordinate: Coordinate) => void;
+  onPoiPress: (event: PoiPressEvent) => void;
   onLongPress: (coordinate: Coordinate) => void;
 };
 
@@ -512,6 +514,7 @@ const MapScene = memo(
       onMarkerDragEnd,
       onOverlayPress,
       onPress,
+      onPoiPress,
       onLongPress,
     },
     ref,
@@ -539,6 +542,7 @@ const MapScene = memo(
       onMarkerPress,
       onMarkerDragEnd,
       onPress,
+      onPoiPress,
       onLongPress,
       onPolylinePress: onOverlayPress,
       onPolygonPress: onOverlayPress,
@@ -798,6 +802,17 @@ export default function App() {
     );
   }, []);
 
+  const handlePoiPress = useCallback((event: PoiPressEvent) => {
+    if (event.provider === 'google') {
+      setStatus(`POI · Google · ${event.name} · ${event.placeId}`);
+      return;
+    }
+
+    setStatus(
+      `POI · Apple · ${event.name ?? event.category} · ${event.category}`,
+    );
+  }, []);
+
   const handleMapLongPress = useCallback((coordinate: Coordinate) => {
     setStatus(
       `Long · ${coordinate.latitude.toFixed(4)}, ${coordinate.longitude.toFixed(4)}`,
@@ -819,6 +834,7 @@ export default function App() {
         onMarkerDragEnd={handleMarkerDragEnd}
         onOverlayPress={handleOverlayPress}
         onPress={handleMapPress}
+        onPoiPress={handlePoiPress}
         onLongPress={handleMapLongPress}
       />
 

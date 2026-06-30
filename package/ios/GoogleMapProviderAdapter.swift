@@ -178,6 +178,7 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     }
   }
   var onPress: ((Coordinate) -> Void)?
+  var onPoiPress: ((NativePoiPressEvent) -> Void)?
   var onLongPress: ((Coordinate) -> Void)?
 
   var markers: [MarkerDescriptor]? {
@@ -270,6 +271,7 @@ final class GoogleMapProviderAdapter: NSObject, MapProviderAdapter {
     onRegionChangeComplete = nil
     onMapReady = nil
     onPress = nil
+    onPoiPress = nil
     onLongPress = nil
     onMarkerPress = nil
     onMarkerDragEnd = nil
@@ -542,6 +544,24 @@ extension GoogleMapProviderAdapter: GMSMapViewDelegate {
 
   func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
     onPress?(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
+  }
+
+  func mapView(
+    _ mapView: GMSMapView,
+    didTapPOIWithPlaceID placeID: String,
+    name: String,
+    location: CLLocationCoordinate2D
+  ) {
+    onPoiPress?(
+      NativePoiPressEvent(
+        provider: .google,
+        coordinate: Coordinate(latitude: location.latitude, longitude: location.longitude),
+        name: name,
+        category: nil,
+        rawCategory: nil,
+        placeId: placeID
+      )
+    )
   }
 
   func mapView(_ mapView: GMSMapView, didLongPressAt coordinate: CLLocationCoordinate2D) {

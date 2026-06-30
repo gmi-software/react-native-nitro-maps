@@ -148,6 +148,14 @@ final class HybridMapViewDelegate: NSObject, MKMapViewDelegate, UIGestureRecogni
   }
 
   func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+    if #available(iOS 16.0, *),
+       let mapFeature = view.annotation as? MKMapFeatureAnnotation,
+       mapFeature.featureType == .pointOfInterest {
+      parent?.notifyPoiPress(annotation: mapFeature)
+      mapView.deselectAnnotation(mapFeature, animated: false)
+      return
+    }
+
     if let cluster = view.annotation as? MapClusterAnnotation {
       let coordinate = cluster.coordinate
       parent?.onClusterPress?(

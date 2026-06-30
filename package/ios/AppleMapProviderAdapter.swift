@@ -29,6 +29,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     applyControlSettings(to: mapView)
     applyMapPadding(to: mapView)
     applyCustomMapStyle(to: mapView)
+    applySelectablePoiFeatures(to: mapView)
     mapView.register(
       NitroPinAnnotationView.self,
       forAnnotationViewWithReuseIdentifier: NitroPinAnnotationView.reuseIdentifier
@@ -158,6 +159,11 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     }
   }
   var onPress: ((Coordinate) -> Void)?
+  var onPoiPress: ((NativePoiPressEvent) -> Void)? {
+    didSet {
+      applySelectablePoiFeatures(to: view)
+    }
+  }
   var onLongPress: ((Coordinate) -> Void)?
 
   var markers: [MarkerDescriptor]? {
@@ -380,6 +386,21 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     onPress?(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
   }
 
+  func notifyPoiPress(annotation: MKMapFeatureAnnotation) {
+    let resolvedCategory = ApplePoiCategory.from(annotation.pointOfInterestCategory)
+    let coordinate = annotation.coordinate
+    onPoiPress?(
+      NativePoiPressEvent(
+        provider: .apple,
+        coordinate: Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude),
+        name: annotation.title ?? nil,
+        category: resolvedCategory.category,
+        rawCategory: resolvedCategory.rawCategory,
+        placeId: nil
+      )
+    )
+  }
+
   func notifyLongPress(at point: CGPoint) {
     let coordinate = view.convert(point, toCoordinateFrom: view)
     onLongPress?(Coordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
@@ -419,6 +440,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     onRegionChangeComplete = nil
     onMapReady = nil
     onPress = nil
+    onPoiPress = nil
     onLongPress = nil
     onMarkerPress = nil
     onMarkerDragEnd = nil
@@ -460,6 +482,7 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
     view.layoutMargins = .zero
     if #available(iOS 16.0, *) {
       view.preferredConfiguration = MapType.standard.toMKMapConfiguration()
+      view.selectableMapFeatures = []
     }
   }
 
@@ -486,6 +509,12 @@ final class AppleMapProviderAdapter: MapProviderAdapter {
   private func applyCustomMapStyle(to mapView: MKMapView) {
     if #available(iOS 16.0, *) {
       CustomMapStyleParser.apply(json: customMapStyle, mapType: mapType, to: mapView)
+    }
+  }
+
+  private func applySelectablePoiFeatures(to mapView: MKMapView) {
+    if #available(iOS 16.0, *) {
+      mapView.selectableMapFeatures = onPoiPress == nil ? [] : .pointsOfInterest
     }
   }
 

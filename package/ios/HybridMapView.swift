@@ -199,6 +199,10 @@ final class HybridMapView: HybridMapViewSpec {
     didSet { adapter?.onPress = onPress }
   }
 
+  var onPoiPress: ((NativePoiPressEvent) -> Void)? {
+    didSet { adapter?.onPoiPress = onPoiPress }
+  }
+
   var onLongPress: ((Coordinate) -> Void)? {
     didSet { adapter?.onLongPress = onLongPress }
   }
@@ -301,6 +305,7 @@ final class HybridMapView: HybridMapViewSpec {
     onRegionChangeComplete = nil
     onMapReady = nil
     onPress = nil
+    onPoiPress = nil
     onLongPress = nil
     onMarkerPress = nil
     onMarkerDragEnd = nil
@@ -379,6 +384,7 @@ final class HybridMapView: HybridMapViewSpec {
     adapter.onRegionChangeComplete = onRegionChangeComplete
     adapter.onMapReady = onMapReady
     adapter.onPress = onPress
+    adapter.onPoiPress = onPoiPress
     adapter.onLongPress = onLongPress
     adapter.markers = markers
     adapter.polylines = polylines
