@@ -34,6 +34,7 @@
     "!**/__mocks__"
   ],
   "scripts": {
+    "prebuild": "bun run nitrogen",
     "build": "bob build && bun run build:plugin",
     "clean:plugin": "rm -rf plugin/build",
     "build:plugin": "bun run clean:plugin && tsc --project tsconfig.plugin.json",
