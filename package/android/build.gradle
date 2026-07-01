@@ -16,6 +16,14 @@ def reactNativeArchitectures() {
     return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
+def getExtOrDefault(name) {
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["NitroMaps_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["NitroMaps_" + name]).toInteger()
+}
+
 apply plugin: 'com.android.library'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply from: '../nitrogen/generated/android/NitroMaps+autolinking.gradle'
@@ -23,11 +31,13 @@ apply plugin: 'com.facebook.react'
 
 android {
     namespace 'com.margelo.nitro.nitromaps'
-    compileSdkVersion 35
+
+    ndkVersion getExtOrDefault("ndkVersion")
+    compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
     defaultConfig {
-        minSdkVersion 24
-        targetSdkVersion 35
+        minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+        targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
 
         externalNativeBuild {
             cmake {
