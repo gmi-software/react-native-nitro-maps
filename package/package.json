@@ -25,6 +25,7 @@
     "android/CMakeLists.txt",
     "android/README.md",
     "android/build.gradle",
+    "android/gradle.properties",
     "android/src",
     "cpp",
     "nitro.json",
